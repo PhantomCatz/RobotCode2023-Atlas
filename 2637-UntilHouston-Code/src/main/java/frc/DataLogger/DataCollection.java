@@ -15,7 +15,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-@SuppressWarnings("unused")
 public class DataCollection 
 {	
     Date date;	
@@ -84,7 +83,6 @@ public class DataCollection
 
     public void updateLogDataID()
     {
-        /* 
         if(chosenDataID.getSelected() == LOG_ID_NONE)
         {
             stopDataCollection();
@@ -93,8 +91,8 @@ public class DataCollection
         {
             startDataCollection();
         }
-        */
-        //setLogDataID(chosenDataID.getSelected());
+        
+        setLogDataID(chosenDataID.getSelected());
 
     }
 
@@ -112,7 +110,6 @@ public class DataCollection
 
         logData = list;
 
-        //dataCollectionShuffleboard();
 
         dataThread = new Thread( () ->
         {
@@ -156,7 +153,6 @@ public class DataCollection
 
     public void startDataCollection() 
     {
-        System.out.println("starting data collection");
         logDataValues = true;
     }
 

@@ -2,13 +2,9 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-
 package frc.robot;
 
 import java.util.ArrayList;
-
-import javax.lang.model.util.ElementScanner14;
-import javax.swing.text.DefaultStyledDocument.ElementSpec;
 
 import com.kauailabs.navx.frc.AHRS;
 
@@ -16,6 +12,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.PowerDistribution;
 
 import frc.DataLogger.CatzLog;
@@ -25,9 +22,11 @@ import frc.Mechanisms.CatzDrivetrain;
 import frc.Mechanisms.CatzElevator;
 import frc.Mechanisms.CatzArm;
 import frc.Mechanisms.CatzIntake;
-import frc.Autonomous.CatzAutonomous;
-import frc.Autonomous.CatzAutonomousPaths;
-import frc.Autonomous.CatzBalance;
+
+import frc.Autonomous.*;
+
+
+
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -35,8 +34,6 @@ import frc.Autonomous.CatzBalance;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
-
- @SuppressWarnings("unused")
 public class Robot extends TimedRobot 
 {
   //---------------------------------------------------------------------------------------------
@@ -67,35 +64,48 @@ public class Robot extends TimedRobot
   public static final int DPAD_LT = 270;
   public static final int DPAD_RT = 90;
 
-  public int xboxGamePieceSelection = DPAD_RT;
-  public double  xboxManual    = 0.1;
+  public double  xboxGamePieceSelection = 0.0;
+  public double  xboxElevatorManualPwr    = 0.1;
+  public boolean xboxElevatorManualMode = false;
   public boolean xboxStowPos   = false;
-  public boolean xboxPickUpPos = false;
   public boolean xboxLowNode   = false;
   public boolean xboxMidNode   = false;
   public boolean xboxHighNode  = false;
+  public boolean xboxPickUpGroundPos = false;
+  public boolean xboxPickUpSinglePos = false;
+  public boolean xboxPickUpDoublePos = false;
 
-  public static final int COMMAND_STATE_STOW            = 0;
+  public static boolean xboxNULL      = false;
 
-  public static final int COMMAND_STATE_PICKUP_CONE     = 1;
-  public static final int COMMAND_STATE_PICKUP_CUBE     = 2;
 
-  public static final int COMMAND_STATE_SCORE_LOW_CONE  = 10;
-  public static final int COMMAND_STATE_SCORE_LOW_CUBE  = 11;
-  public static final int COMMAND_STATE_SCORE_MID_CONE  = 12;
-  public static final int COMMAND_STATE_SCORE_MID_CUBE  = 13;
-  public static final int COMMAND_STATE_SCORE_HIGH_CONE = 14;
-  public static final int COMMAND_STATE_SCORE_HIGH_CUBE = 15;
+  public static final int COMMAND_STATE_NULL            =  0;
+  public static final int COMMAND_UPDATE_STOW            = 7;
 
-  public static final int COMMAND_STATE_DO_NOTHING          = 20;
+  public static final int COMMAND_UPDATE_PICKUP_GROUND_CONE     = 1;
+  public static final int COMMAND_UPDATE_PICKUP_GROUND_CUBE     = 2;
+  public static final int COMMAND_UPDATE_PICKUP_SINGLE_CONE     = 3;
+  public static final int COMMAND_UPDATE_PICKUP_SINGLE_CUBE     = 4;
+  public static final int COMMAND_UPDATE_PICKUP_DOUBLE_CONE     = 5;
+  public static final int COMMAND_UPDATE_PICKUP_DOUBLE_CUBE     = 6;
 
-  public static int commandedState = COMMAND_STATE_DO_NOTHING;
+  public static final int COMMAND_UPDATE_SCORE_LOW_CONE  = 10;
+  public static final int COMMAND_UPDATE_SCORE_LOW_CUBE  = 11;
+  public static final int COMMAND_UPDATE_SCORE_MID_CONE  = 12;
+  public static final int COMMAND_UPDATE_SCORE_MID_CUBE  = 13;
+  public static final int COMMAND_UPDATE_SCORE_HIGH_CONE = 14;
+  public static final int COMMAND_UPDATE_SCORE_HIGH_CUBE = 15;
 
-  public final int GP_CUBE = 0;
-  public final int GP_CONE = 1;
-  public final int GP_NONE = 2;
+  public static int commandedStateUpdate = COMMAND_STATE_NULL;
+
+  public final static int GP_NULL = 0;
+  public final static int GP_CUBE = 1;
+  public final static int GP_CONE = 2;
 
   public int selectedGamePiece = GP_CUBE;
+
+  public String gamepieceString = "null";
+
+  public static int previous_command_state;
 
   //public boolean stateChosen = false;     //TBD
     
@@ -113,8 +123,8 @@ public class Robot extends TimedRobot
   //  Mechanisms
   //---------------------------------------------------------------------------------------------
   public static CatzDrivetrain drivetrain;
-  public static  CatzElevator  elevator;
-  public static  CatzArm       arm;
+  public static CatzElevator   elevator;
+  public static CatzArm        arm;
   public static CatzIntake     intake;
 
 
@@ -154,9 +164,6 @@ public class Robot extends TimedRobot
 
     currentTime = new Timer();
 
-    currentTime.reset();
-    currentTime.start();
-
     //----------------------------------------------------------------------------------------------
     //  Autonomous
     //----------------------------------------------------------------------------------------------
@@ -171,6 +178,7 @@ public class Robot extends TimedRobot
     elevator   = new CatzElevator();
     arm        = new CatzArm();
     intake     = new CatzIntake();
+
 
     //led        = new CatzRGB();
   }
@@ -189,7 +197,7 @@ public class Robot extends TimedRobot
     //  Update status, LED's
     //----------------------------------------------------------------------------------------------
     elevator.checkLimitSwitches();
-
+    arm.checkLimitSwitches();
     dataCollection.updateLogDataID(); //NEEDS TO BE FIXED..causes robot to crash
 
     //led.LEDWork();
@@ -198,19 +206,21 @@ public class Robot extends TimedRobot
     //  Shuffleboard Data Display
     //----------------------------------------------------------------------------------------------
     SmartDashboard.putNumber("NavX", navX.getAngle());
+    SmartDashboard.putNumber("gamepiece int", selectedGamePiece);
+    SmartDashboard.putNumber("COMMAND STATE", commandedStateUpdate);
 
     drivetrain.smartDashboardDriveTrain();
+    drivetrain.smartDashboardDriveTrain_DEBUG();
       elevator.smartDashboardElevator();
-          
-      /*arm.smartDashboardArm();
-        intake.smartDashboardIntake();
+      elevator.smartDashboardElevator_DEBUG();
+         
+      arm.smartDashboardARM();
        balance.SmartDashboardBalance();
     
     //debug should be commented out for comp
-    drivetrain.smartDashboardDriveTrain_DEBUG();
-      elevator.smartDashboardElevator_DEBUG();*/
-        intake.shuffleboardIntakeDebug();
-       //balance.SmartDashboardBalanceDebug();
+
+        intake.smartdashboardIntakeDebug();
+       balance.SmartDashboardBalanceDebug();
        
   }
 
@@ -234,8 +244,7 @@ public class Robot extends TimedRobot
   @Override
   public void autonomousInit() 
   {
-    intake.resetPID();
-
+    drivetrain.setBrakeMode();
     currentTime.reset();
     currentTime.start();
 
@@ -245,7 +254,7 @@ public class Robot extends TimedRobot
     
     Timer.delay(OFFSET_DELAY);  //TBD - This should be 
 
- //   paths.executeSelectedPath();
+    paths.executeSelectedPath();
   }
 
   /** This function is called periodically during autonomous. */
@@ -266,7 +275,13 @@ public class Robot extends TimedRobot
   @Override
   public void teleopInit()
   {
+
     intake.resetPID();
+    intake.enablePID(false);
+    currentTime.reset();
+    currentTime.start();
+
+    dataCollection.startDataCollection();
   }
 
 
@@ -274,47 +289,95 @@ public class Robot extends TimedRobot
   @Override
   public void teleopPeriodic()
   {
-    if(xboxAux.getPOV() == DPAD_RT){
-      xboxGamePieceSelection = GP_CUBE;
+    drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
+
+
+    if(xboxDrv.getStartButtonPressed())
+    {
+      zeroGyro();
     }
-    else if(xboxAux.getPOV() == DPAD_LT){
-      xboxGamePieceSelection = GP_CONE;
-    }
-    else if(xboxAux.getBackButtonPressed()){
-      xboxGamePieceSelection = GP_NONE;
-    }
-    //not updated to newest controller map
-    xboxManual    = xboxAux.getRightY();
+
+
+   // xboxGamePieceSelection = xboxAux.getLeftTriggerAxis(); 
+    xboxElevatorManualPwr    = xboxAux.getRightY();
     xboxHighNode  = xboxAux.getYButton();
     xboxMidNode   = xboxAux.getBButton();
     xboxLowNode   = xboxAux.getAButton();
-    xboxStowPos   = xboxAux.getStartButtonPressed();
-    xboxPickUpPos = xboxAux.getBackButtonPressed(); //conflict w piddisable
-    
+    xboxStowPos   = xboxAux.getXButton();
+    xboxPickUpGroundPos = xboxAux.getStartButtonPressed();
+    xboxElevatorManualMode = xboxAux.getRightStickButton();
+
+    xboxStowPos   = xboxDrv.getRightStickButton();
+
+
+ 
+    xboxGamePieceSelection(xboxAux.getPOV() == DPAD_LT, xboxAux.getPOV() == DPAD_RT, false);//xboxAux.getStartButtonPressed());
     determineCommandState(xboxGamePieceSelection, xboxLowNode, 
                                                   xboxMidNode, 
-                                                  xboxHighNode, xboxStowPos, xboxPickUpPos);
+                                                  xboxHighNode, 
+                                                  xboxStowPos,
+                                                  xboxDrv.getLeftStickButton(),
+                                                  xboxDrv.getLeftTriggerAxis() >= 0.3,
+                                                  xboxDrv.getRightTriggerAxis() >= 0.3
+                                                  );
   
-    elevator.cmdProcElevator(xboxManual,                           // Manual / Manual Hold Elevator Power
-                             xboxAux.getRightStickButtonPressed(), // Enter all-manual mode
-                             commandedState);
+    elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Mnaual Hold Elevator Power
+                            xboxElevatorManualMode,  // Enter Manual Mode
+                            commandedStateUpdate);
 
-    arm.cmdProcArm(xboxAux.getPOV() == DPAD_UP,   //Manual Extend Arm
-                   xboxAux.getPOV() == DPAD_DN,   //Manual Retract Arm 
-                   commandedState); 
+    arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
+                   xboxAux.getLeftTriggerAxis() >= 0.1,   //Manual Retract Arm 
+                   commandedStateUpdate); 
 
     intake.cmdProcIntake(
-      -xboxAux.getLeftY(),                       //Semi-manual override
-      xboxAux.getRightTriggerAxis() >= 0.2,     //Roller in 
-      xboxAux.getLeftTriggerAxis() >= 0.2,      //Roller out
-      xboxAux.getLeftStickButtonPressed(),      //Enter all-manual mode
-     // xboxAux.getStartButtonPressed(),     commented due 2 conflict 4/4 
-      false,      //Soft limit override
-      commandedState
-    );
+          -xboxAux.getLeftY(),                       //Semi-manual override
+          xboxAux.getRightBumper(),     //Roller in 
+          xboxAux.getLeftBumper(),      //Roller out
+          xboxAux.getLeftStickButtonPressed(),      //Enter all-manual mode
+          false,          //Soft limit override
+          commandedStateUpdate,
+          selectedGamePiece
+        );
 
-    commandedState = COMMAND_STATE_DO_NOTHING;
+    if(commandedStateUpdate != COMMAND_STATE_NULL)
+    {
+      System.out.println(commandedStateUpdate);
+      previous_command_state = commandedStateUpdate;
+    }
+                         
+    commandedStateUpdate = COMMAND_STATE_NULL;
 
+
+
+
+
+    
+    
+    // Auto Balance Controls
+    /* 
+    if(xboxDrv.getAButtonPressed())
+    {
+      balance.StartBalancing();
+    }
+    else if(xboxDrv.getBButtonPressed())
+    {
+      balance.StopBalancing();
+    }
+    if(xboxAux.getPOV() == DPAD_LT)
+    {
+      drivetrain.lockWheels();
+    }
+/*
+    if(DriverStation.getMatchTime() < 2.0)
+    {
+      led.matchDone = true;
+
+    }
+    else if(DriverStation.getMatchTime() < 15.0)
+    {
+      led.endGame = true;
+    }
+*/
   }
 
 
@@ -386,69 +449,113 @@ public class Robot extends TimedRobot
   *  Misc
   *
   *----------------------------------------------------------------------------------------*/  
-  public void determineCommandState(int xboxGamePieceSelection,
-                                    boolean xboxLowNode,
-                                    boolean xboxMidNode,
+  public void determineCommandState(double  xboxGamePieceSelection,
+                                    boolean LowNode,
+                                    boolean MidNode,
                                     boolean HighNode,
-                                    boolean xboxStowPos,
-                                    boolean xboxPickUpPos) 
+                                    boolean StowPos,
+                                    boolean PickUpGroundPos,
+                                    boolean PickUpSinglePos,
+                                    boolean PickUpDoublePos) 
   {
-    selectedGamePiece = xboxGamePieceSelection;
-    
-    if(xboxStowPos)
+
+
+    if(StowPos)
+      {
+        commandedStateUpdate = COMMAND_UPDATE_STOW;
+
+      }
+      else if (LowNode)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_LOW_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_LOW_CONE;
+        }
+      }
+      else if(MidNode)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_MID_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_MID_CONE;
+        }
+      }
+      else if(HighNode)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_HIGH_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_SCORE_HIGH_CONE;
+        }
+      }
+      else if(PickUpGroundPos)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_GROUND_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_GROUND_CONE;
+        }
+      }
+      else if(PickUpSinglePos)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_SINGLE_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_SINGLE_CONE;
+        }
+
+      }
+      else if(PickUpDoublePos)
+      {
+        if(selectedGamePiece == GP_CUBE)
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_DOUBLE_CUBE;
+        }
+        else
+        {
+          commandedStateUpdate = COMMAND_UPDATE_PICKUP_DOUBLE_CONE;
+        }
+      }
+    }   //end of determineCommandState()
+
+    public void zeroGyro()
     {
-      commandedState = COMMAND_STATE_STOW;
-    }
-    else if (xboxLowNode)
-    {
-      if(selectedGamePiece == GP_CUBE)
-      {
-        commandedState = COMMAND_STATE_SCORE_LOW_CUBE;
-      }
-      else
-      {
-        commandedState = COMMAND_STATE_SCORE_LOW_CONE;
-      }
-    }
-    else if(xboxMidNode)
-    {
-      if(selectedGamePiece == GP_CUBE)
-      {
-        commandedState = COMMAND_STATE_SCORE_MID_CUBE;
-      }
-      else
-      {
-        commandedState = COMMAND_STATE_SCORE_MID_CONE;
-      }
-    }
-    else if(HighNode)
-    {
-      if(selectedGamePiece == GP_CUBE)
-      {
-        commandedState = COMMAND_STATE_SCORE_HIGH_CUBE;
-      }
-      else
-      {
-        commandedState = COMMAND_STATE_SCORE_HIGH_CONE;
-      }
-    }
-    else if(xboxPickUpPos)
-    {
-      if(selectedGamePiece == GP_CUBE)
-      {
-        commandedState = COMMAND_STATE_PICKUP_CUBE;
-      }
-      else
-      {
-        commandedState = COMMAND_STATE_PICKUP_CONE;
-      }
-    }
-    else{
-      commandedState = COMMAND_STATE_DO_NOTHING;
+      navX.setAngleAdjustment(-navX.getYaw());
     }
 
-    SmartDashboard.putNumber("state", commandedState);
-    SmartDashboard.putNumber("game piece", selectedGamePiece);
-  }   //end of determineCommandState()
-  
+    public void xboxGamePieceSelection(boolean DpadLeft, boolean DpadRight, boolean SelectButtonPressed)
+    {
+      if(DpadLeft)
+      {
+        gamepieceString = "Holding Cone";
+        selectedGamePiece = GP_CONE;
+      }
+      else if(DpadRight)
+      {
+        gamepieceString = "Holding Cube";
+        selectedGamePiece = GP_CUBE;
+      }
+      else if(SelectButtonPressed)
+      {
+        gamepieceString = "No game piece";
+        selectedGamePiece = GP_NULL;
+      }
+    }
+
 }

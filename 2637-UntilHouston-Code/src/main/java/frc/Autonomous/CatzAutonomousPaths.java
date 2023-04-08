@@ -339,78 +339,78 @@ public class CatzAutonomousPaths
 
     public void scoreConeLow()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_LOW_CONE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CONE, Robot.GP_CONE);
 
        Timer.delay(0.5);
 
        ejectCone();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
     public void scoreConeMid()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_MID_CONE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CONE);
 
        Timer.delay(0.5);
 
        ejectCone();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
     public void scoreConeHigh()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_HIGH_CONE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CONE, Robot.GP_CONE);
 
        Timer.delay(0.5);
 
        ejectCone();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
 
     public void scoreCubeLow()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_LOW_CUBE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CUBE, Robot.GP_CUBE);
 
        Timer.delay(0.5);
 
        ejectCube();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
     public void scoreCubeMid()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_MID_CUBE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
 
        Timer.delay(0.5);
 
        ejectCube();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
     public void scoreCubeHigh()
     {
-       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_HIGH_CUBE);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE, Robot.GP_CUBE);
 
        Timer.delay(0.5);
 
        ejectCube();
 
-       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 
 
 
-    public void setCommandStateAuton(int cmdState)
+    public void setCommandStateAuton(int cmdState, int gamePiece)
     {
        Robot.elevator.cmdProcElevator(0.0, false, cmdState);
        Robot.arm.cmdProcArm(false, false, cmdState);
-       Robot.intake.cmdProcIntake(0.0, false, false, false, false, cmdState);
+       Robot.intake.cmdProcIntake(0.0, false, false, false, false, cmdState, gamePiece);
     }
 
     public void ejectCube()
@@ -429,19 +429,19 @@ public class CatzAutonomousPaths
 
     public void pickUpCone()
     {
-        setCommandStateAuton(Robot.COMMAND_STATE_PICKUP_CONE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE, Robot.GP_CONE);
         Robot.intake.rollersIn();
     }
 
     public void pickUpCube()
     {
-        setCommandStateAuton(Robot.COMMAND_STATE_PICKUP_CUBE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE, Robot.GP_CUBE);
         Robot.intake.rollersOut();
     }
 
     public void stow()
     {
-        setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
         Robot.intake.rollersOff();
     }
 }

@@ -18,7 +18,7 @@ import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
 
 
-@SuppressWarnings("unused")
+
 public class CatzElevator
 {
     private WPI_TalonFX elevatorMtr;
@@ -82,6 +82,8 @@ public class CatzElevator
     private boolean lowSwitchState = false;
     private boolean highSwitchState = false;
 
+    private boolean enableManual = false;
+
 
   
     private final int MID_LIMIT_SWITCH_DIO_PORT  = 1;
@@ -92,14 +94,14 @@ public class CatzElevator
 
 
     private final double POS_ENC_INCH_LOW = 0.0;
-    private final double POS_ENC_INCH_MID = 37.555;
+    private final double POS_ENC_INCH_MID = 30;//37.555;
     private final double POS_ENC_INCH_HIGH = 47.187;
 
     private final double POS_ENC_CNTS_LOW  = POS_ENC_INCH_LOW * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//0.0;
-    private final double POS_ENC_CNTS_MID  = POS_ENC_INCH_MID * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//88500.0;
+    private final double POS_ENC_CNTS_MID  = 91000;//POS_ENC_INCH_MID * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//88500.0;
     private final double POS_ENC_CNTS_HIGH = POS_ENC_INCH_HIGH * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//111200.0;
     
-    private final double ELEVATOR_KP_LOW = 0.08;//0.035;
+    private final double ELEVATOR_KP_LOW = 0.03;//0.08;//0.035;
     private final double ELEVATOR_KI_LOW = 0.0;//0.0001;
     private final double ELEVATOR_KD_LOW = 0.001;//0.0238;//0.001;
 
@@ -107,9 +109,9 @@ public class CatzElevator
     private final double ELEVATOR_KI_MID = 0.0;//0.0001;
     private final double ELEVATOR_KD_MID = 0.0;//0.001;
 
-    private final double ELEVATOR_KP_HIGH = 0.082;//0.035;
-    private final double ELEVATOR_KI_HIGH = 0.0;//0.0001;
-    private final double ELEVATOR_KD_HIGH = 0.0;//0.001;
+    private final double ELEVATOR_KP_HIGH = ELEVATOR_KP_MID;//0.082;//0.035;
+    private final double ELEVATOR_KI_HIGH = ELEVATOR_KI_MID;//0.0;//0.0001;
+    private final double ELEVATOR_KD_HIGH = ELEVATOR_KD_MID;//0.0;//0.001;
 
 
     private final double HOLDING_FEED_FORWARD = 0.044;
@@ -118,9 +120,14 @@ public class CatzElevator
     private final double CLOSELOOP_ERROR_THRESHOLD_LOW = 50; 
     private final double CLOSELOOP_ERROR_THRESHOLD_HIGH_MID = 300; 
 
+    private double manualHoldEncCnt;
+
 
     public CatzLog data;
     private Timer elevatorTime;
+
+    private boolean armRetractingAndElevatorDecent = false;
+    private boolean previousArmExtentsion = false;
 
 
     public CatzElevator()
@@ -161,39 +168,55 @@ public class CatzElevator
 
 
 
-    public void cmdProcElevator(double elevatorPwr, boolean manualMode, int cmdState)
+    public void cmdProcElevator(double elevatorPwr, boolean manualMode, int cmdUpdateState)
     {
-       elevatorPwr = -elevatorPwr;
+       elevatorPwr = -elevatorPwr; //reverses elevator pwr
         
-       if(cmdState != Robot.COMMAND_STATE_DO_NOTHING)
+       if(cmdUpdateState != Robot.COMMAND_STATE_NULL)
        {
            elevatorInManual = false;
        }
 
-        if((cmdState == Robot.COMMAND_STATE_PICKUP_CUBE)    ||
-           (cmdState == Robot.COMMAND_STATE_PICKUP_CONE)    ||
-           (cmdState == Robot.COMMAND_STATE_SCORE_LOW_CUBE) || 
-           (cmdState == Robot.COMMAND_STATE_SCORE_LOW_CONE) || 
-           (cmdState == Robot.COMMAND_STATE_STOW)             )
+        switch (cmdUpdateState)
         {
-            elevatorTime.reset();
-            elevatorTime.start();
-            elevatorLowPos();
-        }
-        else if (cmdState == Robot.COMMAND_STATE_SCORE_MID_CUBE || 
-                 cmdState == Robot.COMMAND_STATE_SCORE_MID_CONE   )
-        {
-            elevatorTime.reset();
-            elevatorTime.start();
-            elevatorMidPos();
+            case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE:
+            case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE:
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CUBE:
+            case Robot.COMMAND_UPDATE_SCORE_LOW_CUBE:  
+            case Robot.COMMAND_UPDATE_SCORE_LOW_CONE:
+            case Robot.COMMAND_UPDATE_STOW:
 
+                    armRetractingAndElevatorDecent = true;
+
+            break;
+
+
+            case Robot.COMMAND_UPDATE_SCORE_MID_CUBE:
+            case Robot.COMMAND_UPDATE_SCORE_MID_CONE:
+         
+                    armRetractingAndElevatorDecent = false;
+                    elevatorSetToMidPos();
+            break;
+
+            case Robot.COMMAND_UPDATE_PICKUP_DOUBLE_CONE:
+            case Robot.COMMAND_UPDATE_PICKUP_DOUBLE_CUBE:
+            case Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE:
+            case Robot.COMMAND_UPDATE_SCORE_HIGH_CONE:
+
+                     armRetractingAndElevatorDecent = false;
+                    elevatorSetToHighPos();
+            break;
+            
+        
+            case Robot.COMMAND_STATE_NULL:
+            break;
         }
-        else if(cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CUBE || 
-                cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CONE    )
+
+
+        if(Robot.arm.getArmEncoder() <= 35000.0 && armRetractingAndElevatorDecent == true)
         {
-            elevatorTime.reset();
-            elevatorTime.start();
-            elevatorHighPos();
+            elevatorSetToLowPos();
         }
 
 
@@ -210,6 +233,11 @@ public class CatzElevator
             }
             else // Hold Position
             {
+                elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_LOW);
+                elevatorMtr.config_kP(0, ELEVATOR_KP_LOW);
+                elevatorMtr.config_kI(0, ELEVATOR_KI_LOW);
+                elevatorMtr.config_kD(0, ELEVATOR_KD_LOW);
+
                 targetPositionEnc = elevatorMtr.getSelectedSensorPosition();
                 targetPositionEnc = targetPositionEnc + (elevatorPwr * MANUAL_HOLD_STEP_SIZE);
                 elevatorMtr.set(ControlMode.Position, targetPositionEnc, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
@@ -222,8 +250,11 @@ public class CatzElevator
                 elevatorManual(0.0);
             }
         }
-       
-        if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ELEVATOR))
+
+
+
+
+       if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ELEVATOR))
         {
         
           data = new CatzLog(elevatorTime.get(), elevatorMtr.getSelectedSensorPosition(), elevatorMtr.getMotorOutputPercent(), 
@@ -235,7 +266,8 @@ public class CatzElevator
                                                                   -999.0, -999.0, -999.0, -999.0, -999.0,
                                                                   DataCollection.boolData);  
           Robot.dataCollection.logData.add(data);
-        }
+       }
+
     }
     
 
@@ -248,7 +280,7 @@ public class CatzElevator
         elevatorMtr.set(ControlMode.PercentOutput, mtrPower);
     }
 
-    public void elevatorLowPos()
+    public void elevatorSetToLowPos()
     {
         elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_LOW);
 
@@ -259,7 +291,7 @@ public class CatzElevator
         elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_LOW);// DemandType.ArbitraryFeedForward, 0.0);
     }
 
-    public void elevatorMidPos()
+    public void elevatorSetToMidPos()
     {
         elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);
 
@@ -270,7 +302,7 @@ public class CatzElevator
         elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_MID, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
     }
 
-    public void elevatorHighPos()
+    public void elevatorSetToHighPos()
     {
         elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);
 
@@ -279,6 +311,17 @@ public class CatzElevator
         elevatorMtr.config_kI(0, ELEVATOR_KI_HIGH);
         elevatorMtr.config_kD(0, ELEVATOR_KD_HIGH);
         elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_HIGH, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
+    }
+
+    public void clearBumperFromGroundState()
+    {
+        elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_LOW);
+
+
+        elevatorMtr.config_kP(0, ELEVATOR_KP_LOW);
+        elevatorMtr.config_kI(0, ELEVATOR_KI_LOW);
+        elevatorMtr.config_kD(0, ELEVATOR_KD_LOW);
+        elevatorMtr.set(ControlMode.Position, 20000, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
     }
     
 
@@ -318,5 +361,9 @@ public class CatzElevator
     {
         SmartDashboard.putNumber("Elevator Enc Pos", elevatorMtr.getSelectedSensorPosition());
         SmartDashboard.putNumber("Elev Closed Loop Error", elevatorMtr.getClosedLoopError());
+    }
+
+    public double getElevatorEncoder(){
+        return elevatorMtr.getSelectedSensorPosition();
     }
 }

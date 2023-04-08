@@ -27,10 +27,10 @@ public class CatzDrivetrain
     private final int RT_BACK_ENC_PORT = 7;
     private final int RT_FRNT_ENC_PORT = 8;
 
-    private final double LT_FRNT_OFFSET =  0.0107;
-    private final double LT_BACK_OFFSET =  0.2261;
-    private final double RT_BACK_OFFSET =  0.2536;
-    private final double RT_FRNT_OFFSET =  0.8437;
+    private final double LT_FRNT_OFFSET =  0.0133; //MC ID 2
+    private final double LT_BACK_OFFSET =  0.0498; //MC ID 4
+    private final double RT_BACK_OFFSET =  0.2533; //MC ID 6
+    private final double RT_FRNT_OFFSET =  0.0222; //MC ID 8
 
     private final double NOT_FIELD_RELATIVE = 0.0;
 
@@ -77,8 +77,10 @@ public class CatzDrivetrain
         steerAngle = calcJoystickAngle(leftJoyX, leftJoyY);
         drivePower = calcJoystickPower(leftJoyX, leftJoyY);
         turnPower  = rightJoyX;
+        
         gyroAngle  = navXAngle;
 
+        
         //System.out.println(pwrMode);
         if(pwrMode > 0.9)
         {
@@ -92,11 +94,13 @@ public class CatzDrivetrain
 
         if(drivePower >= 0.1)
         {
+            
             if(modifyDrvPwr == true)
             {
                 drivePower = drivePower * 0.5;
                 //System.out.println("MOD DRV");
             }
+            
 
             if(Math.abs(turnPower) >= 0.1)
             {

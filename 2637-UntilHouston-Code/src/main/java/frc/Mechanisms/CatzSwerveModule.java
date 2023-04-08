@@ -203,7 +203,7 @@ public class CatzSwerveModule
     
     public double getAngle()
     {
-        return currentAngle;
+        return magEnc.get();//currentAngle
     }
 
     public double getError()

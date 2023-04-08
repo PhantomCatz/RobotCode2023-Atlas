@@ -7,10 +7,10 @@ import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.*;
 
-@SuppressWarnings("unused")
 public class CatzArm
 {
     private WPI_TalonFX armMtr;
@@ -51,22 +51,26 @@ public class CatzArm
     private final double POS_ENC_INCH_EXTEND = 8.157;
     private final double POS_ENC_INCH_PICKUP = 4.157;
 
-    private final double POS_ENC_CNTS_RETRACT  = POS_ENC_INCH_RETRACT * CNTS_PER_INCH_CONVERSION_FACTOR;
+    private final double POS_ENC_CNTS_RETRACT  = 0.0;//POS_ENC_INCH_RETRACT * CNTS_PER_INCH_CONVERSION_FACTOR;
     private final double POS_ENC_CNTS_EXTEND  = 44000.0;//POS_ENC_INCH_EXTEND * CNTS_PER_INCH_CONVERSION_FACTOR;
-    private final double POS_ENC_CNTS_PICKUP = POS_ENC_INCH_PICKUP * CNTS_PER_INCH_CONVERSION_FACTOR;
+    private final double POS_ENC_CNTS_PICKUP = 22000.0;//POS_ENC_INCH_PICKUP * CNTS_PER_INCH_CONVERSION_FACTOR;
+    private final double POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR = 73000.0;
 
 
     private boolean extendSwitchState = false;
 
     private int SWITCH_CLOSED = 1;
 
-    private final double ARM_KP = 0.1;
-    private final double ARM_KI = 0.0;
+    private final double ARM_KP = 0.15;
+    private final double ARM_KI = 0.0001;
     private final double ARM_KD = 0.0;
 
     private final double ARM_CLOSELOOP_ERROR = 3000;
 
     private final double MANUAL_CONTROL_PWR_OFF = 0.0;
+
+    private boolean highExtendProcess = false;
+
 
     public CatzArm()
     {
@@ -93,41 +97,55 @@ public class CatzArm
     }
 
     public void cmdProcArm(boolean armExtend, boolean armRetract,
-                            int cmdState)
+                            int cmdUpdateState)
     {
         
+            switch(cmdUpdateState)
+            {
+                case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE:    
+                case  Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE  : 
+                case  Robot.COMMAND_UPDATE_SCORE_LOW_CONE:
+                case  Robot.COMMAND_UPDATE_SCORE_LOW_CUBE:
 
-        if(cmdState == Robot.COMMAND_STATE_PICKUP_CONE||
-           cmdState == Robot.COMMAND_STATE_PICKUP_CUBE ||
-           cmdState == Robot.COMMAND_STATE_SCORE_LOW_CONE ||
-           cmdState == Robot.COMMAND_STATE_SCORE_LOW_CUBE)
-            {
-                armMtr.set(ControlMode.Position, 22000);
-            }
-        else if(cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CONE||
-                cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CUBE )
-            {
-                armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
-            }
-        else if(cmdState == Robot.COMMAND_STATE_STOW ||
-                cmdState == Robot.COMMAND_STATE_SCORE_MID_CONE ||
-                cmdState == Robot.COMMAND_STATE_SCORE_MID_CUBE)
-            {
-                System.out.println("inside retract block");
+                armMtr.set(ControlMode.Position, POS_ENC_CNTS_PICKUP);
+                highExtendProcess = false;
+
+                break;
+
+                case Robot.COMMAND_UPDATE_SCORE_HIGH_CONE:
+                case Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE:
+
+                highExtendProcess = true;
+                break;
+
+                case Robot.COMMAND_UPDATE_STOW           :
+                case Robot.COMMAND_UPDATE_SCORE_MID_CUBE :
+                case Robot.COMMAND_UPDATE_SCORE_MID_CONE :
+
                 armMtr.set(ControlMode.Position, POS_ENC_CNTS_RETRACT);
+                highExtendProcess = false;
+                break;
             }
+                
+        if(Robot.elevator.getElevatorEncoder() >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR && highExtendProcess == true)
+        {
+            armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
+        }
 
 
         if(armExtend == true)
         {
-
-            Robot.commandedState = Robot.COMMAND_STATE_DO_NOTHING;
             setArmPwr(EXTEND_PWR);
+          
+            highExtendProcess = false;
+            
         }
         else if(armRetract == true)
         {
-            Robot.commandedState = Robot.COMMAND_STATE_DO_NOTHING;
             setArmPwr(RETRACT_PWR);
+          
+            highExtendProcess = false;
+            
         }
         else if(armMtr.getControlMode() == ControlMode.PercentOutput)
         {
@@ -159,7 +177,11 @@ public class CatzArm
 
     public void smartDashboardARM()
     {
-        SmartDashboard.putNumber("encoder position", armMtr.getSelectedSensorPosition());
+        SmartDashboard.putNumber("arm encoder position", armMtr.getSelectedSensorPosition());
+    }
+
+    public double getArmEncoder(){
+        return armMtr.getSelectedSensorPosition();
     }
     
 }
