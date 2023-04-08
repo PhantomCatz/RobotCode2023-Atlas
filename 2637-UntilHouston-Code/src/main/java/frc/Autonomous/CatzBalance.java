@@ -59,7 +59,7 @@ public class CatzBalance
                 timer.reset();
                 timer.start();
 
-                if(DataCollection.getLogDataID() == DataCollection.LOG_ID_BALANCE)
+                if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_BALANCE)
                 {
                     data = new CatzLog(ANG_SLOWBAND, ANG_GAIN, RATE_GAIN, MAX_POWER, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0);  
                     Robot.dataCollection.logData.add(data);
@@ -67,11 +67,12 @@ public class CatzBalance
 
                 while(true)
                 {
+                    
                     if(startBalance)
                     {
                         time = timer.get();
 
-                        pitchAngle = Robot.navX.getPitch(); //check sign when changing to getRoll
+                        pitchAngle = Robot.navX.getPitch(); 
                         angleRate = (pitchAngle - prevPitchAngle)/(time - prevTime);
 
                         // PID without the I
@@ -83,16 +84,19 @@ public class CatzBalance
                         {
                             power = power/2;
                         }
+                        
 
-                        Robot.drivetrain.autoDrive(power);   
+                        //Robot.drivetrain.drive(0.0, -power, 0.0); //TBD
+                        
 
                         prevPitchAngle = pitchAngle;
                         prevTime = time;
 
-                        //if(Robot.dataCollection.getLogDataID() == DataCollection.LOG_ID_BALANCE){
+                        if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_BALANCE)
+                        {
                             data = new CatzLog(time, pitchAngle, angleRate, power, pitchTerm, rateTerm, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0);  
                             Robot.dataCollection.logData.add(data);
-                        //}
+                        }
                     }
                     Timer.delay(BALANCE_THREAD_PERIOD);
                 }
@@ -118,12 +122,14 @@ public class CatzBalance
         startBalance = false;
     }
 
-    public void SmartDashboardBalanceDebug(){
+    public void SmartDashboardBalanceDebug()
+    {
         SmartDashboard.putNumber("Pitch Rate", angleRate);
         SmartDashboard.putNumber("Power", power);
     }
 
-    public void SmartDashboardBalance(){
+    public void SmartDashboardBalance()
+    {
         SmartDashboard.putNumber("Pitch", pitchAngle);
     }
 }

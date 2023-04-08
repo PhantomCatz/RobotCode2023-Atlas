@@ -1,138 +1,322 @@
-
 package frc.Mechanisms;
 
+import frc.robot.Robot;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.DemandType;
+import com.ctre.phoenix.motorcontrol.LimitSwitchNormal;
+import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.Mechanisms.*;
+import edu.wpi.first.wpilibj.Timer;
+
+import frc.DataLogger.CatzLog;
+import frc.DataLogger.DataCollection;
+
 
 @SuppressWarnings("unused")
-public class CatzElevator extends AbstractMechanism
+public class CatzElevator
 {
-    public enum PosID
-    {
-        TOP(4, "Top"),
-        MID(3, "Mid"),
-        LOW(2, "Low"),
-        STOW(1, "Stow"),
-        PICKUP(4, "Pickup"),
-        NULL(999, "none");
-        
-        private final double inch;
-        private final String name;
+    private WPI_TalonFX elevatorMtr;
 
-        private PosID(double inch, String name)
-        {
-            this.inch = inch;
-            this.name = name;
-        }
-    }
-        
-    private static final int ELEVATOR_THREAD_PERIOD_MS = 100;
+    private final int ELEVATOR_MC_ID = 10;
 
-    private final int MID_LIMIT_SWITCH_CHANNEL = 1;
+    private final double MAX_MANUAL_SCALED_POWER = 0.7;
 
-    private final int     ELEVATOR_MOTOR_CAN_ID         = 0;
+    private final double MANUAL_CONTROL_DEADBAND = 0.1;
+
+    private final double MANUAL_CONTROL_PWR_OFF = 0.0;
+
+    private boolean elevatorInManual = false;
+    private double targetPositionEnc;
+
+    private final double MANUAL_HOLD_STEP_SIZE = 10.0;
+    
+
+    //constants foir calc encoder to inch
+
+    private final double FIRST_GEAR1 = 13;
+    private final double FIRST_GEAR2 = 48;
+    private final double FIRST_GEAR_RATIO = FIRST_GEAR2/FIRST_GEAR1;
+
+    private final double HTD1 = 15;
+    private final double HTD2 = 30;
+    private final double HTD_RATIO = HTD2/HTD1;
+
+    private final double SECOND_GEAR1 = 28;
+    private final double SECOND_GEAR2 = 24;
+    private final double SECOND_GEAR_RATIO = SECOND_GEAR2/SECOND_GEAR1;
+
+    private final double FINAL_RATIO = FIRST_GEAR_RATIO*HTD_RATIO*SECOND_GEAR_RATIO;
+
+    private final double CNTS_TO_REV = 2048/1;
+
+    private final double SPROKET_DIAMETER = 1.751;
+    private final double SPROKET_CIRCUMFERENCE = SPROKET_DIAMETER*Math.PI;
+
+    private final double INCHES_TO_COUNTS_CONVERSTION_FACTOR = ((CNTS_TO_REV*FINAL_RATIO)/SPROKET_CIRCUMFERENCE);
+    
+
+    
+
+
+    //current limiting
+    private SupplyCurrentLimitConfiguration elevatorCurrentLimit;
     private final int     CURRENT_LIMIT_AMPS            = 55;
     private final int     CURRENT_LIMIT_TRIGGER_AMPS    = 55;
     private final double  CURRENT_LIMIT_TIMEOUT_SECONDS = 0.5;
     private final boolean ENABLE_CURRENT_LIMIT          = true;
 
-    private final double ENC_COUNTS_TO_INCH = 1/69; //temp
-    private final double INCH_TO_ENC_COUNTS  = 69/1;
 
-    private final double DECEL_DIST_INCH = 10.0;
-
-    private final double MAX_POWER = 0.8;
-    private final double MIN_POWER = 0.05;
-
-    private final double DEADBAND_RADIUS_INCH = 1;
-    private final double DEADBAND_RADIUS_ENC  = DEADBAND_RADIUS_INCH * INCH_TO_ENC_COUNTS;
-
-    private final double POWER_GAIN_PER_INCH = MAX_POWER/DECEL_DIST_INCH;
-
-    private final double ELEVATOR_MOTOR_MANUAL_EXT_POWER = 0.5;
-
-    private volatile PosID targetPos = PosID.LOW;
-    private PosID currentPos = PosID.NULL;//to be used in smart dashboard
-
-    private DigitalInput midLimitSwitch;
-
-    private double distanceRemainingEnc;
-    private double currentPositionEnc;
-    private double targetPower;
+    private final boolean PRESSED     = false;
+    private final int       SWITCH_CLOSED = 1;
     
-    private WPI_TalonFX elevatorMotor;
-    private SupplyCurrentLimitConfiguration elevatorMotorCurrentLimit;
+    private DigitalInput lowLimitSwitch;
+    private DigitalInput midLimitSwitch;
+    private DigitalInput highLimitSwitch;
+
+    private boolean lowSwitchState = false;
+    private boolean highSwitchState = false;
+
+
+  
+    private final int MID_LIMIT_SWITCH_DIO_PORT  = 1;
+ 
+
+    private final boolean LIMIT_SWITCH_IGNORED = false;
+    private final boolean LIMIT_SWITCH_MONITORED = true;// limit switches will shut off the motor
+
+
+    private final double POS_ENC_INCH_LOW = 0.0;
+    private final double POS_ENC_INCH_MID = 37.555;
+    private final double POS_ENC_INCH_HIGH = 47.187;
+
+    private final double POS_ENC_CNTS_LOW  = POS_ENC_INCH_LOW * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//0.0;
+    private final double POS_ENC_CNTS_MID  = POS_ENC_INCH_MID * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//88500.0;
+    private final double POS_ENC_CNTS_HIGH = POS_ENC_INCH_HIGH * INCHES_TO_COUNTS_CONVERSTION_FACTOR;//111200.0;
+    
+    private final double ELEVATOR_KP_LOW = 0.08;//0.035;
+    private final double ELEVATOR_KI_LOW = 0.0;//0.0001;
+    private final double ELEVATOR_KD_LOW = 0.001;//0.0238;//0.001;
+
+    private final double ELEVATOR_KP_MID = 0.083;//0.035;
+    private final double ELEVATOR_KI_MID = 0.0;//0.0001;
+    private final double ELEVATOR_KD_MID = 0.0;//0.001;
+
+    private final double ELEVATOR_KP_HIGH = 0.082;//0.035;
+    private final double ELEVATOR_KI_HIGH = 0.0;//0.0001;
+    private final double ELEVATOR_KD_HIGH = 0.0;//0.001;
+
+
+    private final double HOLDING_FEED_FORWARD = 0.044;
+
+
+    private final double CLOSELOOP_ERROR_THRESHOLD_LOW = 50; 
+    private final double CLOSELOOP_ERROR_THRESHOLD_HIGH_MID = 300; 
+
+
+    public CatzLog data;
+    private Timer elevatorTime;
+
 
     public CatzElevator()
     {
-        super(ELEVATOR_THREAD_PERIOD_MS);
+        elevatorMtr = new WPI_TalonFX(ELEVATOR_MC_ID);
 
-        midLimitSwitch = new DigitalInput(MID_LIMIT_SWITCH_CHANNEL);
+        elevatorMtr.configFactoryDefault();
 
-        elevatorMotorCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+        elevatorMtr.setNeutralMode(NeutralMode.Brake);
 
-        elevatorMotor = new WPI_TalonFX(ELEVATOR_MOTOR_CAN_ID);
-        elevatorMotor.configFactoryDefault();
-        elevatorMotor.configSupplyCurrentLimit(elevatorMotorCurrentLimit);
+        elevatorMtr.configForwardLimitSwitchSource(LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen);
+        elevatorMtr.configReverseLimitSwitchSource(LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen);
+        elevatorMtr.overrideLimitSwitchesEnable(LIMIT_SWITCH_MONITORED);
+
+        elevatorCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+
+        elevatorMtr.configSupplyCurrentLimit(elevatorCurrentLimit);
+
+
+        elevatorMtr.config_kP(0, ELEVATOR_KP_HIGH);
+        elevatorMtr.config_kI(0, ELEVATOR_KI_HIGH);
+        elevatorMtr.config_kD(0, ELEVATOR_KD_HIGH);
+
+
+ 
+        elevatorMtr.config_IntegralZone(0, 2000.0);//TBD should go away once feet foward
+
+        elevatorMtr.selectProfileSlot(0, 0);
+
+        elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);//make this constant and make values in inches
         
-        elevatorMotor.setSelectedSensorPosition(0.0);
-        elevatorMotor.setNeutralMode(NeutralMode.Brake);
+        elevatorMtr.set(ControlMode.PercentOutput, MANUAL_CONTROL_PWR_OFF);
 
-        start(); 
-
+        elevatorTime = new Timer();
+        elevatorTime.reset();
+        elevatorTime.start();
     }
 
-    @Override
-    public void update()
-    {
-        currentPositionEnc = elevatorMotor.getSelectedSensorPosition();
-        distanceRemainingEnc = (targetPos.inch * INCH_TO_ENC_COUNTS) - currentPositionEnc;
 
-        if((Math.abs(distanceRemainingEnc) <= DEADBAND_RADIUS_ENC) || (targetPos == PosID.MID && midLimitSwitch.get()))
+
+    public void cmdProcElevator(double elevatorPwr, boolean manualMode, int cmdState)
+    {
+       elevatorPwr = -elevatorPwr;
+        
+       if(cmdState != Robot.COMMAND_STATE_DO_NOTHING)
+       {
+           elevatorInManual = false;
+       }
+
+        if((cmdState == Robot.COMMAND_STATE_PICKUP_CUBE)    ||
+           (cmdState == Robot.COMMAND_STATE_PICKUP_CONE)    ||
+           (cmdState == Robot.COMMAND_STATE_SCORE_LOW_CUBE) || 
+           (cmdState == Robot.COMMAND_STATE_SCORE_LOW_CONE) || 
+           (cmdState == Robot.COMMAND_STATE_STOW)             )
         {
-            currentPos = targetPos;
-            distanceRemainingEnc = 0.0;
+            elevatorTime.reset();
+            elevatorTime.start();
+            elevatorLowPos();
+        }
+        else if (cmdState == Robot.COMMAND_STATE_SCORE_MID_CUBE || 
+                 cmdState == Robot.COMMAND_STATE_SCORE_MID_CONE   )
+        {
+            elevatorTime.reset();
+            elevatorTime.start();
+            elevatorMidPos();
+
+        }
+        else if(cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CUBE || 
+                cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CONE    )
+        {
+            elevatorTime.reset();
+            elevatorTime.start();
+            elevatorHighPos();
+        }
+
+
+        if(manualMode)
+        {
+            elevatorInManual = true;
+        }
+        
+        if(Math.abs(elevatorPwr) >= MANUAL_CONTROL_DEADBAND)
+        {
+            if(elevatorInManual)
+            {
+                elevatorManual(elevatorPwr);
+            }
+            else // Hold Position
+            {
+                targetPositionEnc = elevatorMtr.getSelectedSensorPosition();
+                targetPositionEnc = targetPositionEnc + (elevatorPwr * MANUAL_HOLD_STEP_SIZE);
+                elevatorMtr.set(ControlMode.Position, targetPositionEnc, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
+            }
         }
         else
         {
-            currentPos = PosID.NULL;
+            if (elevatorInManual)
+            {
+                elevatorManual(0.0);
+            }
+        }
+       
+        if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ELEVATOR))
+        {
+        
+          data = new CatzLog(elevatorTime.get(), elevatorMtr.getSelectedSensorPosition(), elevatorMtr.getMotorOutputPercent(), 
+                                                                  -999.0, 
+                                                                  -999.0, 
+                                                                  -999.0, 
+                                                                  -999.0,
+                                                                  -999.0, -999.0, -999.0, 
+                                                                  -999.0, -999.0, -999.0, -999.0, -999.0,
+                                                                  DataCollection.boolData);  
+          Robot.dataCollection.logData.add(data);
+        }
+    }
+    
+
+    public void elevatorManual(double pwr)
+    {
+        double mtrPower;
+
+        mtrPower = pwr * MAX_MANUAL_SCALED_POWER;
+
+        elevatorMtr.set(ControlMode.PercentOutput, mtrPower);
+    }
+
+    public void elevatorLowPos()
+    {
+        elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_LOW);
+
+
+        elevatorMtr.config_kP(0, ELEVATOR_KP_LOW);
+        elevatorMtr.config_kI(0, ELEVATOR_KI_LOW);
+        elevatorMtr.config_kD(0, ELEVATOR_KD_LOW);
+        elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_LOW);// DemandType.ArbitraryFeedForward, 0.0);
+    }
+
+    public void elevatorMidPos()
+    {
+        elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);
+
+
+        elevatorMtr.config_kP(0, ELEVATOR_KP_MID);
+        elevatorMtr.config_kI(0, ELEVATOR_KI_MID);
+        elevatorMtr.config_kD(0, ELEVATOR_KD_MID);
+        elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_MID, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
+    }
+
+    public void elevatorHighPos()
+    {
+        elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);
+
+
+        elevatorMtr.config_kP(0, ELEVATOR_KP_HIGH);
+        elevatorMtr.config_kI(0, ELEVATOR_KI_HIGH);
+        elevatorMtr.config_kD(0, ELEVATOR_KD_HIGH);
+        elevatorMtr.set(ControlMode.Position, POS_ENC_CNTS_HIGH, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
+    }
+    
+
+
+    public void checkLimitSwitches()
+    {
+        if(elevatorMtr.getSensorCollection().isRevLimitSwitchClosed() == SWITCH_CLOSED)
+        {
+            elevatorMtr.setSelectedSensorPosition(POS_ENC_CNTS_LOW);
+            lowSwitchState = true;
+        }
+        else
+        {
+            lowSwitchState = false;
         }
 
-        targetPower = CatzMathUtils.clamp(distanceRemainingEnc * POWER_GAIN_PER_INCH, MIN_POWER, MAX_POWER);
-        elevatorMotor.set(ControlMode.PercentOutput, targetPower);
+        if(elevatorMtr.getSensorCollection().isFwdLimitSwitchClosed() == SWITCH_CLOSED)
+        {
+            elevatorMtr.setSelectedSensorPosition(POS_ENC_CNTS_HIGH);
+            highSwitchState = true;
+        }
+        else
+        {
+            highSwitchState = false;
+        }
     }
 
 
-    public void setElevatorTargetPose(PosID pos)
+    public void smartDashboardElevator()
     {
-        targetPos = pos;
+
+        SmartDashboard.putBoolean("Low Limit Switch", lowSwitchState);
+        SmartDashboard.putBoolean("High Limit Switch", highSwitchState);
     }
 
-    public void elevatorMotorManual(double direction)
+    public void smartDashboardElevator_DEBUG()
     {
-        elevatorMotor.set(ControlMode.PercentOutput, ELEVATOR_MOTOR_MANUAL_EXT_POWER * Math.signum(direction));
-    }
-
-    @Override
-    public void smartDashboard()
-    {
-        SmartDashboard.putString("Elevator Current Pos", currentPos.name);
-    }
-
-    @Override
-    public void smartDashboard_DEBUG()
-    {
-        SmartDashboard.putNumber("Elevator Target Power", targetPower);
-        SmartDashboard.putString("Elevator Target Pos", targetPos.name);
-        SmartDashboard.putNumber("Elevator Distance Remaining", distanceRemainingEnc * ENC_COUNTS_TO_INCH);
+        SmartDashboard.putNumber("Elevator Enc Pos", elevatorMtr.getSelectedSensorPosition());
+        SmartDashboard.putNumber("Elev Closed Loop Error", elevatorMtr.getClosedLoopError());
     }
 }
-
-
-    

@@ -6,43 +6,47 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import frc.robot.Robot;
 
-/***************************************************************************
-    *
-    * Autonomous selections
-    * 
-***************************************************************************/
+/*****************************************************************************************
+*
+* Autonomous selections
+* 
+*****************************************************************************************/
+@SuppressWarnings("unused")
 public class CatzAutonomousPaths
 {  
-    private final SendableChooser<Boolean> chosenAllianceColor = new SendableChooser<>();
-    private final SendableChooser<Integer> chosenPath = new SendableChooser<>();
-    private final SendableChooser<Boolean> chosenBalance = new SendableChooser<>();
-    private final SendableChooser<Boolean> chosenCube = new SendableChooser<>();
+    public final SendableChooser<Boolean> chosenAllianceColor = new SendableChooser<>();
+    private final SendableChooser<Integer> chosenPath         = new SendableChooser<>();
+
+    /*------------------------------------------------------------------------------------
+    *  Field Relative angles when robot is TBD - Finish Comment  
+    *-----------------------------------------------------------------------------------*/
+    private final double FWD_OR_BWD  =   0.0;
+    private final double RIGHT       =  -90.0; 
+    private final double LEFT        =   90.0;
+    private final double BIAS_OFFSET =  -2.0;
+
+    private final double INDEXER_EJECT_TIME = 0.5;  //TBD - Put in Indexer
+
+    /*------------------------------------------------------------------------------------
+    *  Path ID's
+    *-----------------------------------------------------------------------------------*/
+    private final int LEFT_SCORE_1                        = 1;
+    private final int LEFT_SCORE_2                        = 2;
+    private final int LEFT_SCORE_1_BALANCE                = 3;
+
+    private final int CENTER_SCORE_1_LOW                    = 20;
+    private final int CENTER_SCORE_1_MID_BALANCE            = 21;
+    private final int CENTER_SCORE_1_HIGH_BALANCE           = 22;
+
+    private final int RIGHT_SCORE_1                        = 40;
+    private final int RIGHT_SCORE_2                        = 41;
+    private final int RIGHT_SCORE_1_BALANCE                = 42;
+
+    private final int TEST                  = 100;
 
 
-    private final double STRAIGHT = 0.0;
-    public static double CORRECTED_STRAIGHT = 12.0;
-    public static double CORRECTED_RIGHT = -90.0; //RIGHT = negative for reasons
-    public static double RIGHT = -90.0; 
-    public static double LEFT  = 90.0;
 
-    private final double TEMP_MAX_TIME = 8.0;
-    private final double TEMP_DECEL_DIST = 0.1;
-    private final double MIN_DIST = 20.0;
-    private final double MAX_DIST = 100.0;
-    private final double GP_TO_GP = 48.0;
-
-    private final double INDEXER_EJECT_TIME = 0.5;
-
-    public static boolean doBalance = false; // default
-    public static boolean score = false;
-
-    public static int Path;
-    
-    //MAX SPEED
-    public static double FAST = 0.35;
-    public static double SLOW = 0.25;
-
-    public static String path;
+    public static int pathID;
 
      /*  DRIVE STRAIGHT VALUES: 
      * if distance > 70, then FAST, else SLOW
@@ -69,383 +73,375 @@ public class CatzAutonomousPaths
      *                
      */
     // drive.DriveStraight(distance, decelDist, )
-    public CatzAutonomousPaths() {}
 
 
-    public void initializePathOptions()
+    public CatzAutonomousPaths()
     {
         chosenAllianceColor.setDefaultOption("Blue Alliance", Robot.constants.BLUE_ALLIANCE);
-        chosenAllianceColor.addOption("Red Alliance", Robot.constants.RED_ALLIANCE);
-        SmartDashboard.putData(Robot.constants.ALLIANCE_COLOR, chosenAllianceColor);
+        chosenAllianceColor.addOption       ("Red Alliance",  Robot.constants.RED_ALLIANCE);
+        SmartDashboard.putData              ("Alliance Color", chosenAllianceColor);
 
-        chosenPath.setDefaultOption(Robot.constants.POSITION_SELECTOR1, 1);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR2, 2);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR3, 3);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR4, 4);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR5, 5);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR6, 6);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR7, 7);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR8, 8);
-        chosenPath.addOption(Robot.constants.POSITION_SELECTOR9, 9);
-        SmartDashboard.putData(Robot.constants.ALLIANCE_POSITION, chosenPath);
+        chosenPath.setDefaultOption("Left Score 1",           LEFT_SCORE_1);   
+        chosenPath.addOption       ("Left Score 2",           LEFT_SCORE_2);
+        chosenPath.addOption       ("Left Score 1 Balance",   LEFT_SCORE_1_BALANCE);
 
-        chosenBalance.setDefaultOption("Don't Balance", Robot.constants.NO_BALANCE);
-        chosenBalance.addOption("Do Balance", Robot.constants.YES_BALANCE);
-        SmartDashboard.putData(Robot.constants.BALANCE, chosenBalance);
+        chosenPath.addOption       ("Center Score 1 Low",         CENTER_SCORE_1_LOW);
+        chosenPath.addOption       ("Center Score 1 Mid Balance", CENTER_SCORE_1_MID_BALANCE);
+        chosenPath.addOption       ("Center Score 1 High Balance", CENTER_SCORE_1_HIGH_BALANCE);
 
-        chosenCube.setDefaultOption("Regular Version", Robot.constants.REGULAR_PATH);
-        chosenCube.addOption("Cube Version", Robot.constants.CUBE_PATH);
-        SmartDashboard.putData(Robot.constants.PATH_TYPE, chosenCube);
+        chosenPath.addOption       ("Right Score 1",          RIGHT_SCORE_1);
+        chosenPath.addOption       ("Right Score 2",          RIGHT_SCORE_2);
+        chosenPath.addOption       ("Right Score 1 Balance",  RIGHT_SCORE_1_BALANCE);
 
+        chosenPath.addOption       ("TEST PATH",  TEST);
 
-    }
-
-    public void Red() {
-        RIGHT *= -1;
-        LEFT *= -1;
-    }
-    
-    public void OppositeDirection() 
-    {
-        FAST *= -1;
-        SLOW *= -1;
-        score = true;
-    }
-
-    public void CubeIndexerScore()
-    {
-       //
-    }
-
-    /**************************************************************************************
-     *                                 Drive Foward
-     **************************************************************************************/
-
-    public void centerToGrid() 
-    {
-        Robot.auton.DriveStraight(MAX_DIST, TEMP_DECEL_DIST, FAST, STRAIGHT, TEMP_MAX_TIME);
-    }
-    public void gridToCenter() 
-    {
-        Robot.auton.DriveStraight(MAX_DIST, TEMP_DECEL_DIST, FAST, CORRECTED_STRAIGHT, TEMP_MAX_TIME);
-    }
-    
-    public void gridToAreaInfrontOfCargo() 
-    {
-        Robot.auton.DriveStraight(MAX_DIST - MIN_DIST, TEMP_DECEL_DIST, FAST, STRAIGHT, TEMP_MAX_TIME);
-    }
-    
-    public void fowardToCargo() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, STRAIGHT, TEMP_MAX_TIME);
-    }
-    public void gridToChargingStation() 
-    {
-        Robot.auton.DriveStraight(GP_TO_GP + 24, TEMP_DECEL_DIST, SLOW, STRAIGHT, TEMP_MAX_TIME);
+        SmartDashboard.putData     ("Auton Path", chosenPath);
     }
 
 
-    /**************************************************************************************
-     *                                 Drive Backward
-     **************************************************************************************/
+    public void executeSelectedPath()
+    {
+        pathID = chosenPath.getSelected();
+
+        System.out.println("PathID: " + pathID);
+
+        switch (pathID)
+        {
+            case LEFT_SCORE_1: SideScore1(); //Scores High Cone - TBD
+            break;
+
+            case LEFT_SCORE_2: LeftScore2(); //Scores High Cone + Low Cone - TBD
+            break;
+
+            case LEFT_SCORE_1_BALANCE: LeftScore1Balance(); //Scores High Cone - TBD
+            break;
+
+            case CENTER_SCORE_1_LOW: CenterScore1(); //Scores Low Cone - TBD
+            break;
+
+            case CENTER_SCORE_1_MID_BALANCE: CenterScore1MidBalance();  //Scores Mid Cone - TBD
+            break;
+
+            case CENTER_SCORE_1_HIGH_BALANCE: CenterScore1HighBalance(); //Scores High Cone - TBD
+            break;
+
+            case RIGHT_SCORE_1: SideScore1(); //Scores High Cone - TBD
+            break;
+
+            case RIGHT_SCORE_2: RightScore2(); //Scores High Cone + Low Cone - TBD
+            break;
+
+            case RIGHT_SCORE_1_BALANCE: RightScore1Balance(); //Scores High Cone - TBD
+            break;
+
+            case TEST: testPath(); //Scores High Cone - TBD
+            break;
+        }
+
+    }
+
+    public void testPath()
+    {
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight(40, FWD_OR_BWD, 5.0);
+        Robot.auton.DriveStraight(50, FWD_OR_BWD, 5.0);
+        Balance();
+    }
 
 
-    public void centerToAreaInfrontOfDock() 
-    {
-        Robot.auton.DriveStraight(MAX_DIST - MIN_DIST, TEMP_DECEL_DIST, -FAST, STRAIGHT, TEMP_MAX_TIME);
-    }
-    public void dockToGrid() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, -SLOW, STRAIGHT, TEMP_MAX_TIME);
-    }
-    public void centerToChargingStation() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST * 13 / 2, TEMP_DECEL_DIST, -FAST, STRAIGHT, TEMP_MAX_TIME); //dist used to be -128.75
-    }
 
-    /**************************************************************************************
-     *                                  Drive Right
-     **************************************************************************************/
-    public void translateRight48() 
-    {
-        Robot.auton.DriveStraight(GP_TO_GP + 24, TEMP_DECEL_DIST, SLOW, RIGHT, TEMP_MAX_TIME);
-    }
-    public void translateFowardRight() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, STRAIGHT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, RIGHT, TEMP_MAX_TIME);
-    }
-    public void translateBackRight() //Backwards and Right
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, RIGHT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, -SLOW, STRAIGHT, TEMP_MAX_TIME);
-    }
 
-    /**************************************************************************************
-     *                                 Drive Left
-     **************************************************************************************/
-
-    public void translateLeft48() 
-    {
-        Robot.auton.DriveStraight(GP_TO_GP, TEMP_DECEL_DIST, SLOW, LEFT, TEMP_MAX_TIME);
-    }
-    public void translateFowardLeft() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, STRAIGHT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, LEFT, TEMP_MAX_TIME);
-    }
-    public void translateBackLeft() 
-    {
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, SLOW, LEFT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(MIN_DIST, TEMP_DECEL_DIST, -SLOW, STRAIGHT, TEMP_MAX_TIME);
-    }    
-    public void diagonal()
-    {
-        Robot.auton.DriveStraight(GP_TO_GP, TEMP_DECEL_DIST, FAST, GP_TO_GP, TEMP_MAX_TIME); //wheelPos used to be 45 (foward left)
-        Robot.auton.DriveStraight(GP_TO_GP, TEMP_DECEL_DIST, SLOW, STRAIGHT, TEMP_MAX_TIME);
-    }
    
-    private final int CENTER_PRELOAD_TAXI_BALANCE = 1;
-    private final int SIDE_PRELOAD_INTAKE_SCORE = 2;
-    private final int SIDE_PRELOAD_INTAKE_SCORE_BALANCE = 3;
-    private final int DEFENSE_PRELOAD_POSITIONING = 4;
-    private final int CENTER_PRELOAD_SCORE_INTAKE_BALANCE = 5;
-    private final int CENTER_PRELOAD_INTAKE_SCORE_INTAKE_SCORE_BALANCE = 6;
-    private final int SIDE_PRELOAD_INTAKE_SCORE_INTAKE = 7;
-    private final int SIDE_2_PRELOAD_INTAKE_SCORE_INTAKE_SCORE_BALANCE = 8;
-    private final int TEST_PATH = 9;
-    
-    public void determinePath()
+
+
+
+  /*-----------------------------------------------------------------------------------------
+   *    
+   * * Auton Functions
+   * 
+   *----------------------------------------------------------------------------------------*/
+
+    public void Balance()
     {
-        Path = chosenPath.getSelected();
+        Robot.balance.StartBalancing();
+    }
+
+    /*-------------------------------------------------------------------------
+     *
+     * CODE FROM OVERTIME
+     * 
+     * ------------------------------------------------------------------------
+     */
+    public void SideScore1()
+    {
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight(100, LEFT, 2.0);     //From Grid to area to do 180 deg turn
+        Timer.delay(2.0);
+        Robot.auton.DriveStraight(100, RIGHT, 2.0);     //From Grid to area to do 180 deg turn
+
+    }
+
+    public void sideScore2()
+    {
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight( 30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
+
+        Robot.auton.TurnInPlace(180, 2);
+
+        pickUpCone();
+        
+        Robot.auton.DriveStraight(176, FWD_OR_BWD, 5.0); //was 200 before, too far; over center line...was 172 before, too short, now 
+        Timer.delay(1.50);
+        stow();
+        Timer.delay(0.75);
+
+        Robot.auton.TurnInPlace(180, 2);
+
+        Robot.auton.DriveStraight(-214, FWD_OR_BWD, 5.0);
+        scoreConeLow();
+    }
+
+
+    
+    public void LeftScore2()
+    {
+        double direction;
+
         if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            Red();
+            direction = RIGHT;
         }
-        if(chosenCube.getSelected() == Robot.constants.CUBE_PATH) 
+        else
         {
-            OppositeDirection();
-        }
-
-        if(chosenBalance.getSelected()){
-            doBalance = true;
-        }
-        else{
-            doBalance = false;
+            direction = LEFT;
         }
 
-        if(Path == CENTER_PRELOAD_TAXI_BALANCE) 
-        {
-            CenterPreloadTaxiBalance();
-        }
-        if(Path == SIDE_PRELOAD_INTAKE_SCORE) 
-        {
-            SidePreloadIntakeScore();
-        }
-        if(Path == SIDE_PRELOAD_INTAKE_SCORE_BALANCE)
-        {
-            SidePreloadIntakeScoreBalance();
-        }
-        if(Path == DEFENSE_PRELOAD_POSITIONING) 
-        {
-            DefensePreloadPositioning();
-        }
-        if(Path == CENTER_PRELOAD_SCORE_INTAKE_BALANCE) 
-        {
-            CenterPreloadIntakeScoreBalance();
-        } 
-        if(Path == CENTER_PRELOAD_INTAKE_SCORE_INTAKE_SCORE_BALANCE) 
-        {
-            CenterPreloadIntakeScoreIntakeScoreBalance();
-        } //SidePreloadIntakeScoreIntake
-        if(Path == SIDE_PRELOAD_INTAKE_SCORE_INTAKE) 
-        {
-            SidePreloadIntakeScoreIntake();
-        } // Side2PreloadIntakeScoreIntakeScoreBalance
-        if(Path == SIDE_2_PRELOAD_INTAKE_SCORE_INTAKE_SCORE_BALANCE) 
-        {
-            Side2PreloadIntakeScoreIntakeScoreBalance();
-        }
-        if(Path == TEST_PATH) 
-        {
-            TestPath();
-        }
+        sideScore2();
+
+        Robot.auton.DriveStraight( 48,  direction, 2.0);    //Move in front of center node
+        Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
+
+        scoreConeLow();
     }
 
-    public void TestPath() 
-    {
-        if(score) { CubeIndexerScore(); }
-        Robot.auton.DriveStraight(30, TEMP_DECEL_DIST, SLOW, CORRECTED_STRAIGHT, TEMP_MAX_TIME);
-
-        Robot.auton.TurnInPlace(180, 8);
-        Robot.auton.DriveStraight(150, TEMP_DECEL_DIST, SLOW, CORRECTED_STRAIGHT, TEMP_MAX_TIME);
-        Timer.delay(3.0);
         
-        Robot.auton.TurnInPlace(180, 8);
-        Robot.auton.DriveStraight(165, TEMP_DECEL_DIST, -SLOW, CORRECTED_STRAIGHT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(48, TEMP_DECEL_DIST, SLOW, CORRECTED_RIGHT, TEMP_MAX_TIME);
-        Robot.auton.DriveStraight(25, TEMP_DECEL_DIST, -SLOW, CORRECTED_STRAIGHT, TEMP_MAX_TIME);
-        if(score) { CubeIndexerScore(); }
-
-        Robot.auton.StopDriving();
-    }
-
-    public void CenterPreloadTaxiBalance() 
+    public void RightScore2()
     {
-        dockToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score code
-        gridToCenter();
-        //pickup cone;
-        if(doBalance) 
+        double direction;
+
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            centerToChargingStation();
-            Robot.balance.StartBalancing();
+            direction = LEFT;
         }
-        Robot.auton.StopDriving();
-    }
-    
-    public void SidePreloadIntakeScore()
-    {
-        dockToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score code
-        gridToCenter();
-        //pickup cone;
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        Robot.auton.StopDriving();
-    }
-
-    public void SidePreloadIntakeScoreBalance() 
-    {
-        translateBackLeft();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        translateFowardRight();
-        gridToCenter();
-        //pickup cube
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cube
-        translateFowardRight();
-        translateRight48();
-        if(doBalance) 
+        else
         {
-            gridToChargingStation();
-            Robot.balance.StartBalancing();
+            direction = RIGHT;
         }
-        Robot.auton.StopDriving();
+
+        sideScore2();
+
+        Robot.auton.DriveStraight( 48,  direction, 2.0);    //Move in front of center node
+        Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
+
+        scoreConeLow();
     }
 
-    public void DefensePreloadPositioning() 
+    public void LeftScore1Balance()
     {
-        translateBackLeft();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        translateFowardRight();
-        gridToAreaInfrontOfCargo();
-        diagonal();
-        Robot.auton.StopDriving();
-    }
+        double direction;
 
-    public void CenterPreloadIntakeScoreBalance() 
-    {  
-        dockToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        gridToCenter();
-        //pickup cone;
-        centerToAreaInfrontOfDock();
-        translateBackRight();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        translateFowardLeft();
-        if(doBalance) 
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            gridToChargingStation();
-            Robot.balance.StartBalancing();
+            direction = RIGHT;
         }
-        Robot.auton.StopDriving();
+        else
+        {
+            direction = LEFT;
+        }
+
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight(180, FWD_OR_BWD+BIAS_OFFSET, 7.0);     //From Grid to area to do 180 deg turn
+
+        Robot.auton.TurnInPlace(180, 2);
+
+        pickUpCone();
+        Timer.delay(0.75);
+        Robot.auton.DriveStraight(22, FWD_OR_BWD+BIAS_OFFSET, 2.0);
+        Timer.delay(0.5);
+        stow();
+        Timer.delay(0.75);
+        Robot.auton.TurnInPlace(180, 2);
+        Robot.auton.DriveStraight(-42, FWD_OR_BWD+BIAS_OFFSET, 5.0);
+        Robot.auton.DriveStraight(60, direction, 2.0);
+        Robot.auton.DriveStraight(-80, FWD_OR_BWD+BIAS_OFFSET, 2.0);
+        Balance();
     }
 
-    public void CenterPreloadIntakeScoreIntakeScoreBalance() 
+
+    public void RightScore1Balance()
     {
-        dockToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        gridToCenter();
-        //pickup cone;
-        centerToAreaInfrontOfDock();
-        translateBackRight();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        translateFowardLeft();
-        gridToAreaInfrontOfCargo();
-        //pickup cone
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        if(doBalance) 
+        double direction;
+
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            gridToChargingStation();
-            Robot.balance.StartBalancing();
+            direction = LEFT;
         }
-        Robot.auton.StopDriving();
+        else
+        {
+            direction = RIGHT;
+        }
+
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight(30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
+
+        Robot.auton.TurnInPlace(180, 2);
+
+        Robot.auton.DriveStraight(150, FWD_OR_BWD, 5.0);
+        pickUpCone();
+        Robot.auton.DriveStraight(22, FWD_OR_BWD, 2.0);
+        stow();
+        Robot.auton.TurnInPlace(180, 2);
+        Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
+        Robot.auton.DriveStraight(48, direction, 2.0);
+        Robot.auton.DriveStraight(-80, FWD_OR_BWD, 2.0);
+        Balance();
+
+    }
+
+    public void CenterScore1MidBalance() 
+    {
+        scoreConeMid();
+        Robot.auton.DriveStraight(100, FWD_OR_BWD-7, 4.0);
+        Balance();
+    }
+
+    public void CenterScore1HighBalance() 
+    {
+        scoreConeHigh();
+        Robot.auton.DriveStraight(100, FWD_OR_BWD-7, 4.0);
+        Balance();
+    }
+ 
+    public void CenterScore1() 
+    {
+        scoreConeLow();
+        Robot.auton.DriveStraight(200, FWD_OR_BWD, 4.0);
     }
 
 
-    public void SidePreloadIntakeScoreIntake()
+
+
+
+    public void scoreConeLow()
     {
-        translateBackLeft();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        translateFowardRight();
-        gridToAreaInfrontOfCargo();
-        //pickup cube
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cube
-        gridToAreaInfrontOfCargo();
-        translateRight48();
-        fowardToCargo();
-        //pickup cone
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        if(doBalance) 
-        {
-            gridToChargingStation();
-            Robot.balance.StartBalancing();
-        }
-        Robot.auton.StopDriving();
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_LOW_CONE);
+
+       Timer.delay(0.5);
+
+       ejectCone();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+    }
+
+    public void scoreConeMid()
+    {
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_MID_CONE);
+
+       Timer.delay(0.5);
+
+       ejectCone();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+    }
+
+    public void scoreConeHigh()
+    {
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_HIGH_CONE);
+
+       Timer.delay(0.5);
+
+       ejectCone();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
     }
 
 
-    public void Side2PreloadIntakeScoreIntakeScoreBalance()
+    public void scoreCubeLow()
     {
-        translateBackRight();
-        if(score) { CubeIndexerScore(); }
-        //score cone;
-        translateFowardLeft();
-        gridToAreaInfrontOfCargo();
-        //pickup cube
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cube
-        gridToAreaInfrontOfCargo();
-        translateLeft48();
-        fowardToCargo();
-        //pickup cone
-        centerToGrid();
-        if(score) { CubeIndexerScore(); }
-        //score cone
-        if(doBalance) 
-        {
-            gridToChargingStation();
-            Robot.balance.StartBalancing();
-        }
-        Robot.auton.StopDriving();
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_LOW_CUBE);
+
+       Timer.delay(0.5);
+
+       ejectCube();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+    }
+
+    public void scoreCubeMid()
+    {
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_MID_CUBE);
+
+       Timer.delay(0.5);
+
+       ejectCube();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+    }
+
+    public void scoreCubeHigh()
+    {
+       setCommandStateAuton(Robot.COMMAND_STATE_SCORE_HIGH_CUBE);
+
+       Timer.delay(0.5);
+
+       ejectCube();
+
+       setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+    }
+
+
+
+    public void setCommandStateAuton(int cmdState)
+    {
+       Robot.elevator.cmdProcElevator(0.0, false, cmdState);
+       Robot.arm.cmdProcArm(false, false, cmdState);
+       Robot.intake.cmdProcIntake(0.0, false, false, false, false, cmdState);
+    }
+
+    public void ejectCube()
+    {
+        Robot.intake.rollersIn();
+        Timer.delay(0.2);
+        Robot.intake.rollersOff();
+    }
+
+    public void ejectCone()
+    {
+        Robot.intake.rollersOut();
+        Timer.delay(0.2);
+        Robot.intake.rollersOff();
+    }
+
+    public void pickUpCone()
+    {
+        setCommandStateAuton(Robot.COMMAND_STATE_PICKUP_CONE);
+        Robot.intake.rollersIn();
+    }
+
+    public void pickUpCube()
+    {
+        setCommandStateAuton(Robot.COMMAND_STATE_PICKUP_CUBE);
+        Robot.intake.rollersOut();
+    }
+
+    public void stow()
+    {
+        setCommandStateAuton(Robot.COMMAND_STATE_STOW);
+        Robot.intake.rollersOff();
     }
 }

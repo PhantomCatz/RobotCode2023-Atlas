@@ -1,129 +1,165 @@
-
 package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.LimitSwitchNormal;
+import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.*;
 
 @SuppressWarnings("unused")
-public class CatzArm extends AbstractMechanism
+public class CatzArm
 {
-    private static final int ARM_THREAD_PERIOD_MS = 100;
+    private WPI_TalonFX armMtr;
 
-    private final int     ARM_MOTOR_CAN_ID         = 0;
+    private final int ARM_MC_ID = 20;
+
+    private final double EXTEND_PWR  = 0.2;
+    private final double RETRACT_PWR = -0.2;
+
+    //Conversion factors
+
+    //current limiting
+    private SupplyCurrentLimitConfiguration armCurrentLimit;
     private final int     CURRENT_LIMIT_AMPS            = 55;
     private final int     CURRENT_LIMIT_TRIGGER_AMPS    = 55;
     private final double  CURRENT_LIMIT_TIMEOUT_SECONDS = 0.5;
     private final boolean ENABLE_CURRENT_LIMIT          = true;
-    
-    public enum PosID
-    {
-        STW(0), // stow
-        LOW(1), // low
-        MCN(2), // mid cone
-        MCB(3), // mid cube
-        TCN(4), // top cone
-        TCB(5), // top cube
-        NON(6); // none
-        
-        public final int id;
-        private PosID(int id)
-        {
-            this.id = id;
-        }
-    }
 
-    //dummy values
-    public final double[] POS_INCH_LIST = 
-    {
-        0.0, //stow
-        1.0, //low
-        2.0, //mid cone
-        3.0, //mid cube
-        4.0, //top cone
-        5.0, //top cube
-    };
+    //gear ratio
+    private final double VERSA_RATIO  = 7.0/1.0;
 
-    private final double INCH_TO_ENC = 69.69; //dummy value
+    private final double PUILEY_1      = 24.0;
+    private final double PUILEY_2      = 18.0;
+    private final double PUILEY_RATIO  = PUILEY_1 / PUILEY_2;
+     
+    private final double FINAL_RATIO   = VERSA_RATIO * PUILEY_RATIO;
+    private final double FINAL_CIRCUMFERENCE = 3.54; 
 
-    private final double MAX_POWER = 0.8;
-    private final double MIN_POWER = 0.05;
-    private final double DECEL_DIST_INCH = 10.0;
-    private final double POWER_GAIN_PER_INCH = MAX_POWER/DECEL_DIST_INCH;
 
-    private final double DEADBAND_RADIUS_INCH = 1;
-    private final double DEADBAND_RADIUS_ENC  = DEADBAND_RADIUS_INCH * INCH_TO_ENC;
+    private final boolean LIMIT_SWITCH_IGNORED = false;
+    private final boolean LIMIT_SWITCH_MONITORED = true;
 
-    private final double ARM_MOTOR_MANUAL_EXT_POWER = 0.5;
+    private final double CNTS_OVER_REV = 2048.0 / 1.0;
 
-    public volatile PosID targetPos = PosID.STW;
-    private PosID currentPos = PosID.NON;
+    private final double CNTS_PER_INCH_CONVERSION_FACTOR = CNTS_OVER_REV/FINAL_CIRCUMFERENCE;
 
-    private double distanceRemainingEnc;
-    private double currentPositionEnc;
-    private double targetPower;
-    
-    private WPI_TalonFX armMotor;
-    private SupplyCurrentLimitConfiguration armMotorCurrentLimit;
+    private final double POS_ENC_INCH_RETRACT = 0.0;
+    private final double POS_ENC_INCH_EXTEND = 8.157;
+    private final double POS_ENC_INCH_PICKUP = 4.157;
+
+    private final double POS_ENC_CNTS_RETRACT  = POS_ENC_INCH_RETRACT * CNTS_PER_INCH_CONVERSION_FACTOR;
+    private final double POS_ENC_CNTS_EXTEND  = 44000.0;//POS_ENC_INCH_EXTEND * CNTS_PER_INCH_CONVERSION_FACTOR;
+    private final double POS_ENC_CNTS_PICKUP = POS_ENC_INCH_PICKUP * CNTS_PER_INCH_CONVERSION_FACTOR;
+
+
+    private boolean extendSwitchState = false;
+
+    private int SWITCH_CLOSED = 1;
+
+    private final double ARM_KP = 0.1;
+    private final double ARM_KI = 0.0;
+    private final double ARM_KD = 0.0;
+
+    private final double ARM_CLOSELOOP_ERROR = 3000;
+
+    private final double MANUAL_CONTROL_PWR_OFF = 0.0;
 
     public CatzArm()
     {
-        super(ARM_THREAD_PERIOD_MS);
+        armMtr = new WPI_TalonFX(ARM_MC_ID);
 
-        armMotorCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+        armMtr.configFactoryDefault();
 
-        armMotor = new WPI_TalonFX(ARM_MOTOR_CAN_ID);
-        armMotor.configFactoryDefault();
-        armMotor.configSupplyCurrentLimit(armMotorCurrentLimit);
+        armMtr.setNeutralMode(NeutralMode.Brake);
+        armMtr.configReverseLimitSwitchSource(LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyOpen);
+        armMtr.overrideLimitSwitchesEnable(LIMIT_SWITCH_MONITORED);
 
-        armMotor.setSelectedSensorPosition(0.0);
-        armMotor.setNeutralMode(NeutralMode.Brake);
+        armMtr.config_kP(0, ARM_KP);
+        armMtr.config_kI(0, ARM_KI);
+        armMtr.config_kD(0, ARM_KD);
 
-        start();
+        armCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+
+        armMtr.configSupplyCurrentLimit(armCurrentLimit);
+
+        armMtr.configAllowableClosedloopError(0, ARM_CLOSELOOP_ERROR);
+
+        armMtr.set(ControlMode.PercentOutput, MANUAL_CONTROL_PWR_OFF);
+
     }
 
-    @Override
-    public void update()
+    public void cmdProcArm(boolean armExtend, boolean armRetract,
+                            int cmdState)
     {
-        currentPositionEnc = armMotor.getSelectedSensorPosition();
-        distanceRemainingEnc = POS_INCH_LIST[targetPos.id] * INCH_TO_ENC - currentPositionEnc;
+        
 
-        if(Math.abs(distanceRemainingEnc) <= DEADBAND_RADIUS_ENC)
+        if(cmdState == Robot.COMMAND_STATE_PICKUP_CONE||
+           cmdState == Robot.COMMAND_STATE_PICKUP_CUBE ||
+           cmdState == Robot.COMMAND_STATE_SCORE_LOW_CONE ||
+           cmdState == Robot.COMMAND_STATE_SCORE_LOW_CUBE)
+            {
+                armMtr.set(ControlMode.Position, 22000);
+            }
+        else if(cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CONE||
+                cmdState == Robot.COMMAND_STATE_SCORE_HIGH_CUBE )
+            {
+                armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
+            }
+        else if(cmdState == Robot.COMMAND_STATE_STOW ||
+                cmdState == Robot.COMMAND_STATE_SCORE_MID_CONE ||
+                cmdState == Robot.COMMAND_STATE_SCORE_MID_CUBE)
+            {
+                System.out.println("inside retract block");
+                armMtr.set(ControlMode.Position, POS_ENC_CNTS_RETRACT);
+            }
+
+
+        if(armExtend == true)
         {
-            currentPos = targetPos;
-            distanceRemainingEnc = 0.0;
+
+            Robot.commandedState = Robot.COMMAND_STATE_DO_NOTHING;
+            setArmPwr(EXTEND_PWR);
+        }
+        else if(armRetract == true)
+        {
+            Robot.commandedState = Robot.COMMAND_STATE_DO_NOTHING;
+            setArmPwr(RETRACT_PWR);
+        }
+        else if(armMtr.getControlMode() == ControlMode.PercentOutput)
+        {
+            setArmPwr(MANUAL_CONTROL_PWR_OFF);
+        }
+        
+    }
+
+
+    public void checkLimitSwitches()
+    {
+        if(armMtr.getSensorCollection().isRevLimitSwitchClosed() == SWITCH_CLOSED)
+        {
+            armMtr.setSelectedSensorPosition(POS_ENC_CNTS_RETRACT);
+            extendSwitchState = true;
         }
         else
         {
-            currentPos = PosID.NON;
+            extendSwitchState = false;
         }
 
-        targetPower = CatzMathUtils.clamp(distanceRemainingEnc * POWER_GAIN_PER_INCH, MIN_POWER, MAX_POWER);
-        armMotor.set(ControlMode.PercentOutput, targetPower);
+
     }
 
-    public void setPos(PosID pos)
-    {
-        targetPos = pos;
+    public void setArmPwr(double pwr)
+    {        
+        armMtr.set(ControlMode.PercentOutput, pwr);
     }
 
-    public void armMotorManual(double direction)
+    public void smartDashboardARM()
     {
-        armMotor.set(ControlMode.PercentOutput, ARM_MOTOR_MANUAL_EXT_POWER * Math.signum(direction));
-    }
-
-
-    public void smartDashboard()
-    {
-        SmartDashboard.putNumber("Arm Encoder", currentPositionEnc);
-        SmartDashboard.putNumber("Arm Target Position", targetPos.id);
+        SmartDashboard.putNumber("encoder position", armMtr.getSelectedSensorPosition());
     }
     
-
-    public void smartDashboard_DEBUG()
-    {
-        SmartDashboard.putNumber("Arm Current Position", currentPos.id);
-    }
 }
