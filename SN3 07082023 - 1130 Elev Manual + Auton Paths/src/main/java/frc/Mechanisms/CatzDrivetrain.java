@@ -23,14 +23,14 @@ public class CatzDrivetrain
     private final int RT_FRNT_STEER_ID = 8;
 
     private final int LT_FRNT_ENC_PORT = 9;
-    private final int LT_BACK_ENC_PORT = 8;
+    private final int LT_BACK_ENC_PORT = 6;
     private final int RT_BACK_ENC_PORT = 7;
-    private final int RT_FRNT_ENC_PORT = 6;
+    private final int RT_FRNT_ENC_PORT = 8;
 
-    private final double LT_FRNT_OFFSET =  0.01000; 
-    private final double LT_BACK_OFFSET =  0.2280; 
-    private final double RT_BACK_OFFSET =  0.2396; 
-    private final double RT_FRNT_OFFSET =  0.8459; 
+    private final double LT_FRNT_OFFSET =  0.0133; //MC ID 2
+    private final double LT_BACK_OFFSET =  0.0498; //MC ID 4
+    private final double RT_BACK_OFFSET =  0.2533; //MC ID 6
+    private final double RT_FRNT_OFFSET =  0.0222; //MC ID 8
 
     private final double NOT_FIELD_RELATIVE = 0.0;
 
@@ -38,11 +38,14 @@ public class CatzDrivetrain
     private double drivePower = 0.0;
     private double turnPower  = 0.0;
     private double gyroAngle  = 0.0;
+
+    private boolean modifyDrvPwr = false;
     
     //Data collection
     public CatzLog data;
 
     public double dataJoystickAngle;
+    public double dataJoystickPower;
     private double front;
 
 
@@ -69,20 +72,41 @@ public class CatzDrivetrain
         RT_BACK_MODULE.initializeOffset();
     }
 
-    public void cmdProcSwerve(double leftJoyX, double leftJoyY, double rightJoyX, double navXAngle)
+    public void cmdProcSwerve(double leftJoyX, double leftJoyY, double rightJoyX, double navXAngle, double pwrMode)
     {
         steerAngle = calcJoystickAngle(leftJoyX, leftJoyY);
         drivePower = calcJoystickPower(leftJoyX, leftJoyY);
         turnPower  = rightJoyX;
+        
         gyroAngle  = navXAngle;
+
+        
+        //System.out.println(pwrMode);
+        if(pwrMode > 0.9)
+        {
+           //System.out.println("---------");
+            modifyDrvPwr = true;
+        }
+        else
+        {
+            modifyDrvPwr = false;
+        }
 
         if(drivePower >= 0.1)
         {
+            
+            if(modifyDrvPwr == true)
+            {
+                drivePower = drivePower * 0.5;
+                //System.out.println("MOD DRV");
+            }
+            
+
             if(Math.abs(turnPower) >= 0.1)
             {
                 translateTurn(steerAngle, drivePower, turnPower, gyroAngle);
-            }
-            else
+                }
+               else
             {
                 drive(steerAngle, drivePower, gyroAngle);
             }
@@ -112,10 +136,12 @@ public class CatzDrivetrain
         setDrivePower(joystickPower);
 
         dataJoystickAngle = joystickAngle;
+        dataJoystickPower = joystickPower;
     }
 
     public void rotateInPlace(double pwr)
     {
+        pwr *= 0.8; //reducing turn in place pwer
         LT_FRNT_MODULE.setWheelAngle(-45.0, NOT_FIELD_RELATIVE);
         LT_BACK_MODULE.setWheelAngle(45.0, NOT_FIELD_RELATIVE);
         RT_FRNT_MODULE.setWheelAngle(-135.0, NOT_FIELD_RELATIVE);
@@ -214,10 +240,10 @@ public class CatzDrivetrain
         else if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_SWERVE_DRIVING)
         {
             data = new CatzLog(Robot.currentTime.get(), dataJoystickAngle,
-                            LT_FRNT_MODULE.getAngle(), LT_FRNT_MODULE.getDrvDistance(), LT_FRNT_MODULE.getDrvVelocity(),
-                            LT_BACK_MODULE.getAngle(), LT_BACK_MODULE.getDrvDistance(), LT_BACK_MODULE.getDrvVelocity(),
-                            RT_FRNT_MODULE.getAngle(), RT_FRNT_MODULE.getDrvDistance(), RT_FRNT_MODULE.getDrvVelocity(),
-                            RT_BACK_MODULE.getAngle(), RT_BACK_MODULE.getDrvDistance(), RT_BACK_MODULE.getDrvVelocity(), LT_FRNT_MODULE.getError(), DataCollection.boolData);  
+                            LT_FRNT_MODULE.getAngle(), LT_FRNT_MODULE.getDrvDistanceRaw(), LT_FRNT_MODULE.getDrvVelocity(),
+                            LT_BACK_MODULE.getAngle(), LT_BACK_MODULE.getDrvDistanceRaw(), LT_BACK_MODULE.getDrvVelocity(),
+                            RT_FRNT_MODULE.getAngle(), RT_FRNT_MODULE.getDrvDistanceRaw(), RT_FRNT_MODULE.getDrvVelocity(),
+                            RT_BACK_MODULE.getAngle(), RT_BACK_MODULE.getDrvDistanceRaw(), RT_BACK_MODULE.getDrvVelocity(), LT_FRNT_MODULE.getError(), DataCollection.boolData);  
             Robot.dataCollection.logData.add(data);
         }
     }
@@ -271,19 +297,7 @@ public class CatzDrivetrain
         RT_BACK_MODULE.smartDashboardModules_DEBUG();
         SmartDashboard.putNumber("Joystick", steerAngle);
     }
-    /*
-     * Auto Balance stuff
-     */
 
-    /*
-     * Auto Balance stuff
-     */
-    public void reverseAllDrive(Boolean reverse){
-        LT_FRNT_MODULE.reverseDrive(reverse);
-        LT_BACK_MODULE.reverseDrive(reverse);
-        RT_FRNT_MODULE.reverseDrive(reverse);
-        RT_BACK_MODULE.reverseDrive(reverse);
-    }
 
     public void zeroGyro()
     {
@@ -304,29 +318,6 @@ public class CatzDrivetrain
 
         setDrivePower(power);
     }
-
-    public double boolToInt(double f, boolean b)
-    {
-       if(b)
-       {
-           return f;
-       }
-       else
-       {
-           return -f;
-       }
-   }
-   
-   public double getAveragePosition()
-   {
-       return 
-       (
-           boolToInt(LT_FRNT_MODULE.getDriveMotorPosition(), LT_FRNT_MODULE.driveDirectionFlipped) + 
-           boolToInt(LT_BACK_MODULE.getDriveMotorPosition(), LT_BACK_MODULE.driveDirectionFlipped) + 
-           boolToInt(RT_FRNT_MODULE.getDriveMotorPosition(), RT_FRNT_MODULE.driveDirectionFlipped) + 
-           boolToInt(RT_BACK_MODULE.getDriveMotorPosition(), RT_BACK_MODULE.driveDirectionFlipped)
-       ) / 4.0;
-   }
 
 
     public double calcJoystickAngle(double xJoy, double yJoy)

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -40,23 +41,23 @@ public class DataCollection
     public static final int LOG_ID_NONE            = 0;
     public static final int LOG_ID_SWERVE_STEERING = 1;
     public static final int LOG_ID_SWERVE_DRIVING  = 2;
-    public static final int LOG_ID_BALANCE         = 3;
+    public static final int LOG_ID_ARM             = 3;
     public static final int LOG_ID_INTAKE          = 4;
-    public static final int LOG_ID_ARM             = 5;
     public static final int LOG_ID_ELEVATOR        = 6;
-    public static final int LOG_ID_DRV_STRAIGHT    = 7;
-    public static final int LOG_ID_TURN_IN_PLACE   = 8;
+    public static final int LOG_ID_DRV_STRAIGHT    = 8;
+    public static final int LOG_ID_TURN_IN_PLACE   = 9;
+    public static final int LOG_ID_BALANCE         = 10;
 
     public boolean validLogID = true;
 
     private final String LOG_HDR_SWERVE_STEERING = "time,target,lf-angle,lf-err,lf-flip-err,lb-angle,lb-err,lb-flip-err,rf-angle,rf-err,rf-flip-err,rb-angle,rb-err,rb-flip-err";
-    private final String LOG_HDR_SWERVE_DRIVING = "time,target,lf-angle,lf-dist,lf-vel,lb-angle,lb-dist,lb-vel,rf-angle,rf-dist,rf-vel,rb-angle,rb-dist,rb-vel,lf-error";
-    private final String LOG_HDR_BALANCE_MOD = "time,pitch,rate,power,pitchTerm,rateTerm,";
-    private final String LOG_HDR_INTAKE = "time,target-angle,current-angle,target-angular-rate,angle-dot,final-motor-pwr,pwr-for-mtr,dt-ang,dt-time,state,targetAngAccel";
-    private final String LOG_HDR_ARM = "";
-    private final String LOG_HDR_ELEVATOR = "time,raw-enc-val,cur-piv-agl,piv-lop-err,stow-hold-err,piv-mtr-pwr,piv-abs-pos,talon-cnts,crg-pos-inch";
-    private final String LOG_HDR_DRV_STRAIGHT = "time, d_rem,enc_pos,power,angle_err,angle,rate,turn_power";
+    private final String LOG_HDR_SWERVE_DRIVING = "time,target,lf-angle,lf-dist,lf-vel,lb-angle,lb-dist,lb-vel,rf-angle,rf-dist,rf-vel,rb-angle,rb-dist,rb-vel,lf-error,LEFTBACKPWR";
+    private final String LOG_HDR_ARM = "time,position,mtroutput";
+    private final String LOG_HDR_INTAKE = "time,current-angle,wristmtr-encoder,tar-pwr,tar-pos-enc,calc-grav-FF";
+    private final String LOG_HDR_ELEVATOR = "time,position,mtroutput";
+    private final String LOG_HDR_DRV_STRAIGHT = "time, delta-pos-cn,dis-rem-in,drv-pwr-kp,drv-pwr-clmp,drv-pwr,curr-angl,angl-err,angl-err-rate,turn-pwr-kp,turn-pwr-kd,turn-pwr,lf-mod-angl";
     private final String LOG_HDR_TURN_IN_PLACE = "time, cur-angle, cur-err, mtr-pwr";
+    private final String LOG_HDR_BALANCE_MOD = "time,pitch,rate,power,pitchTerm,rateTerm,";
 
     public String logStr;
 
@@ -77,7 +78,7 @@ public class DataCollection
 
     public DataCollection()
     {
-        dataCollectionShuffleboard();
+      dataCollectionShuffleboard();
     }
 
     public void updateLogDataID()
@@ -90,6 +91,7 @@ public class DataCollection
         {
             startDataCollection();
         }
+        
         setLogDataID(chosenDataID.getSelected());
 
     }
@@ -108,7 +110,6 @@ public class DataCollection
 
         logData = list;
 
-        //dataCollectionShuffleboard();
 
         dataThread = new Thread( () ->
         {
@@ -138,15 +139,13 @@ public class DataCollection
     public void dataCollectionShuffleboard()
     {
         chosenDataID.setDefaultOption("None",        LOG_ID_NONE);
-        
-        chosenDataID.addOption("Swerve Steering",    LOG_ID_SWERVE_STEERING);
-        chosenDataID.addOption("Swerve Driving",     LOG_ID_SWERVE_DRIVING);
-        chosenDataID.addOption("Balance Data",       LOG_ID_BALANCE);
-        chosenDataID.addOption("Intake",             LOG_ID_INTAKE);
-        chosenDataID.addOption("Arm",                LOG_ID_ARM);
-        chosenDataID.addOption("Elevator",           LOG_ID_ELEVATOR);
+        chosenDataID.addOption("Swerve Steering", LOG_ID_SWERVE_STEERING);
+        chosenDataID.addOption("Swerve Driving", LOG_ID_SWERVE_DRIVING);
+        chosenDataID.addOption("Arm", LOG_ID_ARM);
+        chosenDataID.addOption("Intake", LOG_ID_INTAKE);
+        chosenDataID.addOption("Elevator", LOG_ID_ELEVATOR);
         chosenDataID.addOption("Auton Drv Straight", LOG_ID_DRV_STRAIGHT);
-        chosenDataID.addOption("Auton Turn In Place",LOG_ID_TURN_IN_PLACE);
+        chosenDataID.addOption("Auton Turn In Place", LOG_ID_TURN_IN_PLACE);
 
         SmartDashboard.putData("Data Collection", chosenDataID);
     
@@ -190,18 +189,6 @@ public class DataCollection
                 break;
             case LOG_ID_SWERVE_DRIVING :    
                 break;
-            case LOG_ID_BALANCE: 
-                break;
-            case LOG_ID_INTAKE:
-                break;
-            case LOG_ID_ARM:
-                break;
-            case LOG_ID_ELEVATOR:
-                break;
-            case LOG_ID_DRV_STRAIGHT:
-                break;
-            case LOG_ID_TURN_IN_PLACE:
-                break;
             default :
                 validLogID = false;
 
@@ -231,9 +218,6 @@ public class DataCollection
             case LOG_ID_SWERVE_DRIVING:
                 pw.printf(LOG_HDR_SWERVE_DRIVING);
                 break;
-            case LOG_ID_BALANCE:
-                pw.printf(LOG_HDR_BALANCE_MOD);
-            break;
             case LOG_ID_INTAKE:
                 pw.printf(LOG_HDR_INTAKE);
             break;
@@ -248,6 +232,9 @@ public class DataCollection
             break;
             case LOG_ID_TURN_IN_PLACE:
                 pw.printf(LOG_HDR_TURN_IN_PLACE);
+            break;
+            case LOG_ID_BALANCE:
+                pw.printf(LOG_HDR_BALANCE_MOD);
             break;
             default :
                 pw.printf("Invalid Log Data ID");            
@@ -299,28 +286,28 @@ public class DataCollection
         switch(getLogDataID())
         {
             case(LOG_ID_SWERVE_STEERING):
-                mechanismName = "Swerve Steering Data";
+                mechanismName = "Swerve Steering";
             break;
             case(LOG_ID_SWERVE_DRIVING):
-                mechanismName = "Swerve Driving Data";
-            break; 
-            case(LOG_ID_BALANCE):
-                mechanismName = "Balancing Data";
-            break;
-            case(LOG_ID_INTAKE):
-                mechanismName = "Intake Data";
+                mechanismName = "Swerve Driving";
             break;
             case(LOG_ID_ARM):
-                mechanismName = "Arm Data";
+                mechanismName = "Arm";
+            break;
+            case(LOG_ID_INTAKE):
+                mechanismName = "Intake";
             break;
             case(LOG_ID_ELEVATOR):
-                mechanismName = "Elevator Data";
+                mechanismName = "Elevator";
             break;
             case(LOG_ID_DRV_STRAIGHT):
-                mechanismName = "Auton Drv Straight Data";
+                mechanismName = "Auton Drv Straight";
             break;
             case(LOG_ID_TURN_IN_PLACE):
-                mechanismName = "Auton Turn In Place Data";
+                mechanismName = "Auton Turn In Place";
+            break;
+            case(LOG_ID_BALANCE):
+                mechanismName = "Balancing";
             break;
         }
         return mechanismName;

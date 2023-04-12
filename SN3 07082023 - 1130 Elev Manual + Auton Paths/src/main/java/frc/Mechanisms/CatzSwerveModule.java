@@ -7,11 +7,9 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -40,13 +38,7 @@ public class CatzSwerveModule
 
     private double wheelOffset;
 
-    private final double FAULT_DETECT_DELTA_TIME = 0.02;
-    private final int MAX_COUNT = 100;
     public static final SendableChooser<Boolean> chosenState = new SendableChooser<>();
-
-    private boolean dead = false;
-
-    private  Timer faultTimer;
 
     //current limiting
     private SupplyCurrentLimitConfiguration swerveModuleCurrentLimit;
@@ -80,66 +72,10 @@ public class CatzSwerveModule
         pid = new PIDController(kP, kI, kD);
 
         wheelOffset = offset;
-        faultTimer = new Timer();
 
         //for shuffleboard
         motorID = steerMotorID;
         
-    }
-
-    public void encoderFaultDetect() //not working, needs to be fixed
-    {
-        final Thread faultDetectThread = new Thread(() ->
-        {
-            int count = 0;
-            double prevEncValue;
-            double encValue = -1.0;
-
-            chosenState.setDefaultOption("Alive", true);
-            chosenState.addOption("Dead", false);
-            SmartDashboard.putData("Set enc " + motorID, chosenState);
-
-            while(true)
-            {
-                SmartDashboard.putBoolean("Enc " + motorID + " state", dead);
-
-                prevEncValue = encValue;
-                encValue = magEnc.get();
-                if(prevEncValue == encValue)
-                {
-                    count++;
-                }
-                else
-                {
-                    count = 0;
-                }
-
-                if(count >= MAX_COUNT)
-                {
-                    dead = true;
-                    count = MAX_COUNT;
-                }
-                else if(dead)
-                {
-                    dead = false;
-                }
-
-                if(chosenState.getSelected())
-                {
-                    DRIVE_MOTOR.setNeutralMode(NeutralMode.Coast);
-                    STEER_MOTOR.set(0.0);
-                    DRIVE_MOTOR.set(ControlMode.PercentOutput, 0.0);
-                }
-                else
-                {
-                    DRIVE_MOTOR.setNeutralMode(NeutralMode.Brake); DRIVE_MOTOR.getSelectedSensorPosition();
-                }
-
-                Timer.delay(FAULT_DETECT_DELTA_TIME);
-            }
-        });
-
-        faultDetectThread.start();
     }
 
     public void initializeOffset()
@@ -155,10 +91,13 @@ public class CatzSwerveModule
     public void setBrakeMode()
     {
         STEER_MOTOR.setIdleMode(IdleMode.kBrake);
+        //DRIVE_MOTOR.setNeutralMode(NeutralMode.Brake); //REMOVE AFTER TESTING
+
     }
     public void setCoastMode()
     {
         STEER_MOTOR.setIdleMode(IdleMode.kCoast);
+        //DRIVE_MOTOR.setNeutralMode(NeutralMode.Coast); //REMOVE AFTER TESTING
     }
 
     public double closestAngle(double startAngle, double targetAngle)
@@ -225,9 +164,36 @@ public class CatzSwerveModule
         return magEnc.get();
     }
 
-    public double getDrvDistance()
+    public double getDrvDistanceRaw()
     {
         return DRIVE_MOTOR.getSelectedSensorPosition();
+    }
+
+    public double getDrvDistance()
+    {
+        if(driveDirectionFlipped)
+        {
+            return DRIVE_MOTOR.getSelectedSensorPosition();
+        }
+        else
+        {
+            return -DRIVE_MOTOR.getSelectedSensorPosition();
+        }
+    }
+
+    public void resetDrvDistance()
+    {
+        int i = 0;
+
+        DRIVE_MOTOR.setSelectedSensorPosition(0.0);
+        while(Math.abs(DRIVE_MOTOR.getSelectedSensorPosition()) > 1.0)
+        {
+            i++;
+            if(i >= 3000)
+            {
+                resetDrvDistance();
+            }
+        }
     }
 
     public double getDrvVelocity()
@@ -237,7 +203,7 @@ public class CatzSwerveModule
     
     public double getAngle()
     {
-        return currentAngle;
+        return magEnc.get();//currentAngle
     }
 
     public double getError()
@@ -258,17 +224,12 @@ public class CatzSwerveModule
     public void smartDashboardModules_DEBUG()
     {
         SmartDashboard.putNumber(motorID + " Mag Encoder", magEnc.get() );
-        SmartDashboard.putBoolean(motorID + " Flipped", driveDirectionFlipped);
+        //SmartDashboard.putBoolean(motorID + " Flipped", driveDirectionFlipped);
     }
 
     /*Auto Balance */
     public void reverseDrive(Boolean reverse)
     {
         DRIVE_MOTOR.setInverted(reverse);
-    }
-
-    public double getDriveMotorPosition()
-    {
-        return DRIVE_MOTOR.getSelectedSensorPosition();
     }
 }
