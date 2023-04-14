@@ -15,92 +15,153 @@ import frc.DataLogger.*;;
 
 public class CatzIntake
 {
-    private WPI_TalonFX wristMtr;
+    //----------------------------------------------------------------------------------------------
+    //
+    //  Roller
+    //
+    //----------------------------------------------------------------------------------------------
     private WPI_TalonFX rollersMtr;
 
-    private final double THREAD_PERIOD = 0.02;
+    private final int ROLLERS_MC_ID  = 30;
 
-    private final double SOFT_LIMIT_FORWARD = 3887.0;
-    private final double SOFT_LIMIT_REVERSE = -1787;
+    private final double ROLLERS_PWR_CUBE = 0.4;   
+    private final double ROLLERS_PWR_CONE = 0.4;
 
-    private final double SEMI_MANUAL_RATE = 50.0;
+    private SupplyCurrentLimitConfiguration rollerCurrentLimit;
 
-    private final int WRIST_MC_ID   = 31;
-    private final int ROLLERS_MC_ID = 30;
+    private final int     CURRENT_LIMIT_AMPS_ROLLER            = 40;    
+    private final int     CURRENT_LIMIT_TRIGGER_AMPS_ROLLER    = 40;
+
+    //----------------------------------------------------------------------------------------------
+    //
+    //  Wrist
+    //
+    //----------------------------------------------------------------------------------------------
+    private WPI_TalonFX wristMtr;
+
+    private final int    WRIST_MC_ID   = 31;
 
     private final double WRIST_MAX_PWR = 0.3;
-    private final double ROLLERS_PWR   = 0.4;
-    
-    private final int WRIST_ENC_CAN_ID = 13; 
-
-    private final double WRIST_ENC_OFFSET = -989;
-
-    private final double ENC_TO_INTAKE_GEAR_RATIO =  18.0/46.0;
-    private final double WRIST_DEGREE_PER_CNT = 360.0 / 4096.0 * ENC_TO_INTAKE_GEAR_RATIO;
-
-    private final double STOW_ENC_POS = 3883.0;
-    private final double INTAKE_CUBE_ENC_POS = -335; // TBD
-    private final double INTAKE_CONE_ENC_POS_GROUND = -1295; //TBD
-    private final double INTAKE_CONE_ENC_POS_SINGLE = 1100;
-    private final double SCORE_CUBE_ENC_POS = 870.0; // TBD
-    private final double SCORE_CONE_HIGH_ENC_POS = -300;//-700;//-1123.0; //TBD
-    private final double SCORE_CONE_MID_ENC_POS = INTAKE_CONE_ENC_POS_GROUND; //TBD
-    private final double SCORE_CONE_LOW_ENC_POS = INTAKE_CONE_ENC_POS_GROUND; //TBD
-
-    private final double STOW_CUTOFF = 3670.0;
-
-    public final int GP_NULL = 0;
-    public final int GP_CUBE = 1;
-    public final static int GP_CONE = 2;
 
     //current limiting
     private SupplyCurrentLimitConfiguration wristCurrentLimit;
+
     private final int     CURRENT_LIMIT_AMPS            = 55;
     private final int     CURRENT_LIMIT_TRIGGER_AMPS    = 55;
     private final double  CURRENT_LIMIT_TIMEOUT_SECONDS = 0.5;
     private final boolean ENABLE_CURRENT_LIMIT          = true;
-
-    private SupplyCurrentLimitConfiguration rollerCurrentLimit;
-    private final int     CURRENT_LIMIT_AMPS_ROLLER            = 40;
-    private final int     CURRENT_LIMIT_TRIGGER_AMPS_ROLLER    = 40;
-
-    private final double CM_DEGREE_OFFSET = 4.758;
-
-    //private double wristAngle;
-
-    private final double kP = 0.00009; 
-    private final double kI = 0.000040;
-    private final double kD = 0.000007;
     
-    double maxGravityFF = 0.11; //0.11
-    
-    private PIDController pid;
-    private double targetPositionEnc = STOW_ENC_POS;
-    private double targetPower;
-    private Boolean pidEnable = false;
 
-    private double mtrPower;
+    //----------------------------------------------------------------------------------------------
+    //  Wrist encoder & Position Values
+    //----------------------------------------------------------------------------------------------
     private CANCoder wristEncoder;
 
-    private double wristManualThreadPower = 0.0;
+    private final int    WRIST_ENC_CAN_ID = 13; 
 
-    private int intakeMovementMode = Robot.MODE_AUTO;
 
-    private double targetPositionAuton = -999999.0;
+    private final double ENC_TO_INTAKE_GEAR_RATIO =  18.0 / 46.0;
+    private final double WRIST_DEGREE_PER_CNT     = 360.0 / 4096.0 * ENC_TO_INTAKE_GEAR_RATIO;
+
+
+    private final double MANUAL_HOLD_STEP_SIZE = 50.0;       
+
+    //TBD - ADD comment for ref point
+    private final double CENTER_OF_MASS_DEGREE_OFFSET     = 4.758;
+    private final double WRIST_ABS_ENC_OFFSET = -989.0; //Negative value means abs enc 0 is above intake angle 0      //TBD - whats the difference between these?
+    
+    private final double STOW_ENC_POS               =  4872.0 + WRIST_ABS_ENC_OFFSET; //3883
+    private final double STOW_CUTOFF                =  4659.0 + WRIST_ABS_ENC_OFFSET; //3670
+
+    private final double INTAKE_CUBE_ENC_POS        =  1324.0 + WRIST_ABS_ENC_OFFSET;    //-335
+    private final double INTAKE_CONE_ENC_POS_GROUND = -306.0  + WRIST_ABS_ENC_OFFSET;  //-1295  
+    private final double INTAKE_CONE_ENC_POS_SINGLE =  2089.0 + WRIST_ABS_ENC_OFFSET;  //1100
+
+    private final double SCORE_CUBE_ENC_POS         =  1859.0 + WRIST_ABS_ENC_OFFSET;  //870     // Applies to low-mid-high
+
+    private final double SCORE_CONE_HIGH_ENC_POS    =  289.0 + WRIST_ABS_ENC_OFFSET;  //-700
+    private final double SCORE_CONE_MID_ENC_POS     = INTAKE_CONE_ENC_POS_GROUND; //TBD verify if its the same as high
+    private final double SCORE_CONE_LOW_ENC_POS     = INTAKE_CONE_ENC_POS_GROUND; //TBD
+
+
+    private final double SOFT_LIMIT_FORWARD =  4876  + WRIST_ABS_ENC_OFFSET;  //3887
+    private final double SOFT_LIMIT_REVERSE = -798.0 + WRIST_ABS_ENC_OFFSET; //-1787     //TBD
+
+    private final double GROSS_kP = 0.000085;//0.00009; 
+    private final double GROSS_kI = 0.0;//000040;
+    private final double GROSS_kD = 0.00001;//0.000007;
+
+    private final double FINE_kP = 0.000185;//0.00009; 
+    private final double FINE_kI = 0.0;//000040;
+    private final double FINE_kD = 0.00001;//0.000007;
+    
+    private final double MAX_GRAVITY_FF = 0.055; //0.09
+
+    
+    private PIDController pid;
+    
+    private Boolean  pidEnable = false;
+
+    private double   targetPositionEnc = STOW_ENC_POS;
+    private double   prevTargetPosition = 0.0;
+
+    private double   targetPower = 0.0;
+    private double   prevTargetPwr = 0.0;
+
+    private int intakeMovementMode = Robot.MODE_AUTO;   //TBD - Should we have NULL State?
+
     private double currentPosition = -999.0;
     private double positionError = -999.0; 
+    private double prevCurrentPosition = -999.0;
 
     private boolean intakeInPosition = false;
 
     private final double ERROR_INTAKE_THRESHOLD = 500;
-    private final double NO_TARGET_POSITION = -999999.0;
+
+    private double pidPower = 0.0;
+    private double ffPower = 0.0;
 
 
+
+    //private double wristAngle;
+
+
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  Misc
+    *
+    *---------------------------------------------------------------------------------------------*/
     CatzLog data;
 
+    private final double THREAD_PERIOD = 0.02;
+
+
+
+
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  CatzIntake()
+    *
+    *---------------------------------------------------------------------------------------------*/
     public CatzIntake()
     {
-        wristEncoder = new CANCoder(WRIST_ENC_CAN_ID);//do we use?
+        //----------------------------------------------------------------------------------------------
+        //  Roller
+        //----------------------------------------------------------------------------------------------
+        rollersMtr = new WPI_TalonFX(ROLLERS_MC_ID);
+        rollersMtr.configFactoryDefault();
+        rollersMtr.setNeutralMode(NeutralMode.Brake);
+
+        rollerCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS_ROLLER, 
+                                                                                       CURRENT_LIMIT_TRIGGER_AMPS_ROLLER, 
+                                                                                       CURRENT_LIMIT_TIMEOUT_SECONDS);
+
+        rollersMtr.configSupplyCurrentLimit(rollerCurrentLimit);
+
+        //----------------------------------------------------------------------------------------------
+        //  Wrist
+        //----------------------------------------------------------------------------------------------
+        wristEncoder = new CANCoder(WRIST_ENC_CAN_ID); 
 
         wristMtr = new WPI_TalonFX(WRIST_MC_ID);
         wristMtr.setNeutralMode(NeutralMode.Brake);
@@ -108,71 +169,122 @@ public class CatzIntake
         wristMtr.configForwardSoftLimitThreshold(SOFT_LIMIT_FORWARD);
         wristMtr.configReverseSoftLimitThreshold(SOFT_LIMIT_REVERSE);
 
-        //wristMtr.configForwardSoftLimitEnable(true);
-        //wristMtr.configReverseSoftLimitEnable(true);
+        wristMtr.configForwardSoftLimitEnable(true);                  
+        wristMtr.configReverseSoftLimitEnable(true);
 
-        wristCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+        wristCurrentLimit  = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS, 
+                                                                                       CURRENT_LIMIT_TRIGGER_AMPS, 
+                                                                                       CURRENT_LIMIT_TIMEOUT_SECONDS);        
         wristMtr.configSupplyCurrentLimit(wristCurrentLimit);
 
-        rollerCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, CURRENT_LIMIT_AMPS_ROLLER, CURRENT_LIMIT_TRIGGER_AMPS_ROLLER, CURRENT_LIMIT_TIMEOUT_SECONDS);
-
-
-        rollersMtr = new WPI_TalonFX(ROLLERS_MC_ID);
-        rollersMtr.configFactoryDefault();
-        rollersMtr.setNeutralMode(NeutralMode.Brake);
-        rollersMtr.configSupplyCurrentLimit(rollerCurrentLimit);
-
-        pid = new PIDController(kP, kI, kD);
+        pid = new PIDController(GROSS_kP, GROSS_kI, GROSS_kD);
+       
 
         startIntakeThread();
     }
 
-    public void resetPID(){
-        pidEnable = false;
-        pid.reset();
-    }
 
-    public void enablePID(boolean set){
-        pidEnable = set;
-        
-    }
 
-    public boolean getPIDEnabled(){
-        return pidEnable;
-    
-    }
-
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  startIntakeThread()
+    *
+    *---------------------------------------------------------------------------------------------*/
     public void startIntakeThread()
     {
         Thread intakeThread = new Thread(() ->
         {
             while(true)
             {
-                if(pidEnable){
-                    targetPower = pid.calculate(wristMtr.getSelectedSensorPosition(), targetPositionEnc) + calculateGravityFF();
-                    if(targetPositionEnc == STOW_ENC_POS && wristMtr.getSelectedSensorPosition() > STOW_CUTOFF){
+
+                if(pidEnable)   
+                {
+                    //----------------------------------------------------------------------------------
+                    //  Chk if at final position
+                    //----------------------------------------------------------------------------------
+                    currentPosition = wristMtr.getSelectedSensorPosition();
+
+                    ffPower = calculateGravityFF();
+                    positionError = currentPosition - targetPositionEnc;
+
+
+                    if  ((Math.abs(positionError) <= ERROR_INTAKE_THRESHOLD))
+                    {
+                        intakeInPosition = true;
+                    }
+                    
+                    
+                    if(Math.abs(positionError) >= 500)
+                    {
+                        pid.setP(GROSS_kP);
+                        pid.setI(GROSS_kI);
+                        pid.setD(GROSS_kD);
+                        System.out.println("gross" + positionError);
+                    }
+                    else if(Math.abs(positionError) < 500)
+                    {
+                        pid.setP(FINE_kP);
+                        pid.setI(FINE_kI);
+                        pid.setD(FINE_kD);
+                        System.out.println("FINE" + positionError);
+                    }
+
+                    pidPower = pid.calculate(currentPosition, targetPositionEnc);
+                    targetPower = pidPower + ffPower;
+
+                    if(prevCurrentPosition == currentPosition && prevTargetPosition == targetPositionEnc)
+                    {
+                        targetPower = prevTargetPwr;
+                    }
+
+                    //----------------------------------------------------------------------------------
+                    //  If we are going to Stow Position & have passed the power cutoff angle, set
+                    //  power to 0, otherwise calculate new motor power based on position error and 
+                    //  current angle
+                    //----------------------------------------------------------------------------------
+                    if(targetPositionEnc == STOW_ENC_POS && currentPosition > STOW_CUTOFF)
+                    {
                         targetPower = 0.0;
                     }
                     wristMtr.set(ControlMode.PercentOutput, targetPower);
+
+                    prevCurrentPosition = currentPosition;
+                    prevTargetPwr = targetPower;
+                    prevTargetPosition = targetPositionEnc;
                 }
 
-                currentPosition = wristMtr.getSelectedSensorPosition();
-                positionError = currentPosition - targetPositionAuton;
-                if  ((Math.abs(positionError) <= ERROR_INTAKE_THRESHOLD) && targetPositionAuton != NO_TARGET_POSITION)
-                {
-                    intakeInPosition = true;
-                    targetPositionAuton = NO_TARGET_POSITION;
+
+                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE)) 
+                {        
+                    data = new CatzLog(Robot.currentTime.get(), targetPositionEnc, currentPosition, 
+                                                                targetPower, 
+                                                                pidPower,
+                                                                ffPower,
+                                                                wristMtr.getMotorOutputPercent(),
+                                                                            -999.0, -999.0, -999.0, 
+                                                                            -999.0, -999.0, -999.0, -999.0, -999.0,
+                                                                            DataCollection.boolData);
+                                            
+                    Robot.dataCollection.logData.add(data);
                 }
+
 
                 Timer.delay(THREAD_PERIOD);    
             }   //End of while(true)
         });
         intakeThread.start();
     }
-    
 
 
-    public void cmdProcIntake(double wristPwr, boolean rollersIn, boolean rollersOut, boolean manualMode, boolean softLimitOverride, int state, int gamePiece)
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  cmdProcIntake()
+    *
+    *---------------------------------------------------------------------------------------------*/
+    public void cmdProcIntake(double wristPwr, boolean rollersIn, boolean rollersOut, boolean manualMode, 
+                                                                                      boolean softLimitOverride, 
+                                                                                      int state, 
+                                                                                      int gamePiece)
     {
         if(manualMode){                
             pidEnable = false;
@@ -186,27 +298,31 @@ public class CatzIntake
                 intakeMovementMode = Robot.MODE_MANUAL_HOLD;
 
                 if(wristPwr > 0){
-                    targetPositionEnc = Math.min((targetPositionEnc + wristPwr * SEMI_MANUAL_RATE), SOFT_LIMIT_FORWARD);
+                    targetPositionEnc = Math.min((targetPositionEnc + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_FORWARD);
                 }
                 else{
-                    targetPositionEnc = Math.max((targetPositionEnc + wristPwr * SEMI_MANUAL_RATE), SOFT_LIMIT_REVERSE);
+                    targetPositionEnc = Math.max((targetPositionEnc + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_REVERSE);
                 }
             }
-            else//in full manual mode
+            else //in full manual mode
             {
-                wristManualThreadPower = wristPwr * WRIST_MAX_PWR;    
-                wristMtr.set(ControlMode.PercentOutput, wristManualThreadPower);
+                targetPower = wristPwr * WRIST_MAX_PWR;    
+                wristMtr.set(ControlMode.PercentOutput, targetPower);
             }
         }
-        else if(pidEnable == false)
+        else //Manual power is OFF
         {
-            wristManualThreadPower = 0.0;
+            if(pidEnable == false)
+            {
+                targetPower = 0.0;
+                wristMtr.set(ControlMode.PercentOutput, targetPower);
+            }
         }
 
 
         if(rollersIn)
         {
-            if(gamePiece == GP_CUBE)
+            if(gamePiece == Robot.GP_CUBE)
             {
                 rollersInCube();
             } 
@@ -217,7 +333,7 @@ public class CatzIntake
         }
         else if(rollersOut)
         {
-            if(gamePiece == GP_CUBE)
+            if(gamePiece == Robot.GP_CUBE)
             {
                 rollersOutCube();
             } 
@@ -236,9 +352,9 @@ public class CatzIntake
         if(state != Robot.COMMAND_STATE_NULL)
         {
             pid.reset();
-             pidEnable = true;
-             intakeMovementMode = Robot.MODE_AUTO;
-             intakeInPosition = false;
+            pidEnable = true;
+            intakeMovementMode = Robot.MODE_AUTO;
+
             switch(state)
             {
                 case Robot.COMMAND_UPDATE_STOW :
@@ -283,22 +399,8 @@ public class CatzIntake
 
                 default:
                     pidEnable = false;
+                    //TBD
                     break;
-            }
-
-            targetPositionAuton = targetPositionEnc;
-
-            if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE))
-            {        
-                data = new CatzLog(Robot.currentTime.get(), wristMtr.getSelectedSensorPosition(), targetPower, 
-                                                            targetPositionEnc, 
-                                                            calculateGravityFF(), 
-                                                                        -999.0, 
-                                                                        -999.0,
-                                                                        -999.0, -999.0, -999.0, 
-                                                                        -999.0, -999.0, -999.0, -999.0, -999.0,
-                                                                        DataCollection.boolData);  
-                Robot.dataCollection.logData.add(data);
             }
         }
 
@@ -314,12 +416,30 @@ public class CatzIntake
 
 
 
-    public void wristManual(double pwr)
-    {
-        mtrPower = pwr * WRIST_MAX_PWR;
-        wristMtr.set(ControlMode.PercentOutput, mtrPower);
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  Utilities - PID 
+    *
+    *---------------------------------------------------------------------------------------------*/
+    public void resetPID(){
+        pidEnable = false;
+        pid.reset();
     }
 
+    public void enablePID(boolean set){
+        pidEnable = set;
+    }
+
+    public boolean getPIDEnabled(){
+        return pidEnable;
+    }
+
+
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  Utilities - Rollers
+    *
+    *---------------------------------------------------------------------------------------------*/
     public void rollersOff()
     {
         rollersMtr.set(ControlMode.PercentOutput, 0.0);
@@ -327,42 +447,56 @@ public class CatzIntake
 
     public void rollersInCube()
     {
-        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR);
+        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR_CUBE);
     }
 
     public void rollersOutCube()
     {
-        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CUBE);
     }
 
     public void rollersInCone()
     {
-        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CONE);
     }
 
     public void rollersOutCone()
     {
-        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR);
+        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR_CONE);
     }
     
-    public double calcWristAngle()//testing
+
+    /*----------------------------------------------------------------------------------------------
+    *
+    *  Utilities - Wrist
+    *
+    *---------------------------------------------------------------------------------------------*/
+    public double calcWristAngle()
     {
-        double wristAngle = (wristMtr.getSelectedSensorPosition() - WRIST_ENC_OFFSET) * WRIST_DEGREE_PER_CNT;
+        double wristAngle = (wristMtr.getSelectedSensorPosition() - WRIST_ABS_ENC_OFFSET) * WRIST_DEGREE_PER_CNT;
         return wristAngle;
     }
     
     public double calculateGravityFF()
     {
-        double radians = Math.toRadians(calcWristAngle() - CM_DEGREE_OFFSET);
+        double radians = Math.toRadians(calcWristAngle() - CENTER_OF_MASS_DEGREE_OFFSET);
         double cosineScalar = Math.cos(radians);
         
-        return maxGravityFF * cosineScalar;
+        return MAX_GRAVITY_FF * cosineScalar;
     }
+
+    public double intakeWristTemp()
+    {
+        return wristMtr.getTemperature();
+    }
+
 
     public int getIntakeMovementMode()
     {
         return intakeMovementMode;
     }
+
+
 
     public void shuffleboardIntake()
     {
@@ -371,17 +505,12 @@ public class CatzIntake
 
     public void smartdashboardIntakeDebug()
     {
-        SmartDashboard.putNumber("motor remote sensor postion", wristMtr.getSelectedSensorPosition());
-        SmartDashboard.putNumber("calculated ang", calcWristAngle());
-        SmartDashboard.putNumber("GravityFF", calculateGravityFF());
-        SmartDashboard.putNumber("CLosedLoopError", pid.getPositionError());
-        SmartDashboard.putNumber("applied output", wristMtr.getMotorOutputPercent() );
-        SmartDashboard.putBoolean("pid", pidEnable);
-    }
-
-    public double intakeWristTemp()
-    {
-        return wristMtr.getTemperature();
+        SmartDashboard.putNumber ("abs enc cnts", wristMtr.getSelectedSensorPosition());
+        SmartDashboard.putNumber ("wrist ang",  calcWristAngle());
+        SmartDashboard.putNumber ("GravityFF",       calculateGravityFF());
+        SmartDashboard.putNumber ("ClosedLoopError", pid.getPositionError());
+        SmartDashboard.putNumber ("applied output",  wristMtr.getMotorOutputPercent() );
+        SmartDashboard.putBoolean("pid",             pidEnable);
     }
 
     public boolean isIntakeInPos()

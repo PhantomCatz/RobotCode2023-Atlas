@@ -62,16 +62,6 @@ public class CatzDrivetrain
         RT_BACK_MODULE.resetMagEnc();
     }
 
-    public void initializeOffsets()
-    {
-        Robot.navX.setAngleAdjustment(-Robot.navX.getYaw());
-
-        LT_FRNT_MODULE.initializeOffset();
-        LT_BACK_MODULE.initializeOffset();
-        RT_FRNT_MODULE.initializeOffset();
-        RT_BACK_MODULE.initializeOffset();
-    }
-
     public void cmdProcSwerve(double leftJoyX, double leftJoyY, double rightJoyX, double navXAngle, double pwrMode)
     {
         steerAngle = calcJoystickAngle(leftJoyX, leftJoyY);

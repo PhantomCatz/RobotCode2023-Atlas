@@ -300,8 +300,8 @@ public class Robot extends TimedRobot
     xboxHighNode           = xboxAux.getYButton();
     xboxMidNode            = xboxAux.getBButton();
     xboxLowNode            = xboxAux.getAButton();
-    xboxStowPos            = xboxAux.getXButton() | xboxDrv.getRightStickButton();
-    xboxPickUpGroundPos    = xboxDrv.getLeftStickButton() | xboxAux.getStartButton();
+    xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
+    xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
 
     xboxElevatorManualMode = xboxAux.getRightStickButton();
     xboxElevatorManualPwr  = xboxAux.getRightY();
@@ -317,12 +317,13 @@ public class Robot extends TimedRobot
                                                   xboxStowPos,
                                                   xboxPickUpGroundPos,
                                                   xboxAux.getPOV() == DPAD_DN,
-                                                  xboxDrv.getPOV() == DPAD_UP
-                                                  );
+                                                  xboxDrv.getPOV() == DPAD_UP);
   
+                                                  /* 
     elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Mnaual Hold Elevator Power
                             xboxElevatorManualMode,  // Enter Manual Mode
                             commandedStateUpdate);
+                            */
 
     arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
                    xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 

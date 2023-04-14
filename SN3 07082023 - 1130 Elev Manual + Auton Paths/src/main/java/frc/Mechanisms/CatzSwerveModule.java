@@ -19,7 +19,7 @@ public class CatzSwerveModule
     private final CANSparkMax STEER_MOTOR;
     private final WPI_TalonFX DRIVE_MOTOR;
 
-    private final int motorID;
+    private final int MOTOR_ID;
 
     private DutyCycleEncoder magEnc;
     private DigitalInput MagEncPWMInput;
@@ -36,7 +36,7 @@ public class CatzSwerveModule
     private double command;
     public boolean driveDirectionFlipped = false;
 
-    private double wheelOffset;
+    private final double WHEEL_OFFSET;
 
     public static final SendableChooser<Boolean> chosenState = new SendableChooser<>();
 
@@ -71,16 +71,11 @@ public class CatzSwerveModule
 
         pid = new PIDController(kP, kI, kD);
 
-        wheelOffset = offset;
+        WHEEL_OFFSET = offset;
 
         //for shuffleboard
-        motorID = steerMotorID;
+        MOTOR_ID = steerMotorID;
         
-    }
-
-    public void initializeOffset()
-    {
-        wheelOffset = getEncValue();
     }
 
     public void resetMagEnc()
@@ -121,7 +116,7 @@ public class CatzSwerveModule
 
     public void setWheelAngle(double target, double gyroAngle)
     {
-        currentAngle = ((magEnc.get() - wheelOffset) * 360.0) - gyroAngle;
+        currentAngle = ((magEnc.get() - WHEEL_OFFSET) * 360.0) - gyroAngle;
         // find closest angle to target angle
         angleError = closestAngle(currentAngle, target);
 
@@ -218,12 +213,12 @@ public class CatzSwerveModule
 
     public void smartDashboardModules()
     {
-        SmartDashboard.putNumber(motorID + " Wheel Angle", (currentAngle));
+        SmartDashboard.putNumber(MOTOR_ID + " Wheel Angle", (currentAngle));
     }
 
     public void smartDashboardModules_DEBUG()
     {
-        SmartDashboard.putNumber(motorID + " Mag Encoder", magEnc.get() );
+        SmartDashboard.putNumber(MOTOR_ID + " Mag Encoder", magEnc.get() );
         //SmartDashboard.putBoolean(motorID + " Flipped", driveDirectionFlipped);
     }
 
