@@ -131,6 +131,8 @@ public class CatzElevator
 
     private boolean elevatorInPosition = false;
 
+    private int numConsectSamples = 0;
+
     public CatzElevator()
     {
         elevatorMtr = new WPI_TalonFX(ELEVATOR_MC_ID);
@@ -165,6 +167,8 @@ public class CatzElevator
         elevatorTime = new Timer();
         elevatorTime.reset();
         elevatorTime.start();
+
+        startElevatorThread();
     }
 
 
@@ -181,7 +185,6 @@ public class CatzElevator
         {
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE:
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE:
-            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
             case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CUBE:
             case Robot.COMMAND_UPDATE_SCORE_LOW_CUBE:  
             case Robot.COMMAND_UPDATE_SCORE_LOW_CONE:
@@ -190,6 +193,13 @@ public class CatzElevator
                 armRetractingAndElevatorDescent = true;
 
             break;
+
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
+
+                armRetractingAndElevatorDescent = false;
+                elevatorSetToSinglePickup();
+
+                break;
 
             case Robot.COMMAND_UPDATE_SCORE_MID_CONE:
          
@@ -229,7 +239,6 @@ public class CatzElevator
         if(Math.abs(elevatorPwr) >= MANUAL_CONTROL_DEADBAND)
         {
             armRetractingAndElevatorDescent = false;
-
             if(elevatorInManual) // Full manual
             {
                 elevatorMovementMode = Robot.MODE_MANUAL;
@@ -288,21 +297,27 @@ public class CatzElevator
                         elevatorSetToLowPos();
                         armRetractingAndElevatorDescent = false;
                     }
-                    
-
                 }
                 
                 currentPosition = elevatorMtr.getSelectedSensorPosition();
                 positionError = currentPosition - targetPosition;
                 if  ((Math.abs(positionError) <= ERROR_ELEVATOR_THRESHOLD) && targetPosition != NO_TARGET_POSITION)
                 {
-                    elevatorInPosition = true;
                     targetPosition = NO_TARGET_POSITION;
+                    numConsectSamples++;
+                        if(numConsectSamples >= 10)
+                        {   
+                            elevatorInPosition = true;
+                        }
+                    }
+                else
+                {
+                    numConsectSamples = 0;
                 }
+                
 
-                //TBD check if targetPosition reached
 
-                //TBD 
+                Timer.delay(0.020); 
             }   //End of while(true)
         });
         elevatorThread.start();
@@ -375,7 +390,7 @@ public class CatzElevator
         elevatorInPosition = false;
     }
 
-    public void clearBumperFromGroundState()
+    public void elevatorSetToSinglePickup()
     {
         elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_LOW);
 
@@ -383,7 +398,7 @@ public class CatzElevator
         elevatorMtr.config_kP(0, ELEVATOR_KP_LOW);
         elevatorMtr.config_kI(0, ELEVATOR_KI_LOW);
         elevatorMtr.config_kD(0, ELEVATOR_KD_LOW);
-        elevatorMtr.set(ControlMode.Position, 20000, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
+        elevatorMtr.set(ControlMode.Position, 27739, DemandType.ArbitraryFeedForward, HOLDING_FEED_FORWARD);
     }
     
 

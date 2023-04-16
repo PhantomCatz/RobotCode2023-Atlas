@@ -102,7 +102,7 @@ public class Robot extends TimedRobot
   public final static int GP_CUBE = 1;
   public final static int GP_CONE = 2;
 
-  public int selectedGamePiece = GP_CUBE;
+  public static int selectedGamePiece = GP_CUBE;
 
   public static final int MODE_AUTO        = 0;
   public static final int MODE_MANUAL_HOLD = 1;
@@ -212,6 +212,8 @@ public class Robot extends TimedRobot
     drivetrain.smartDashboardDriveTrain_DEBUG();
     elevator.smartDashboardElevator();
     elevator.smartDashboardElevator_DEBUG();
+    balance.SmartDashboardBalanceDebug();
+
         
     arm.smartDashboardARM();
     balance.SmartDashboardBalance();
@@ -274,14 +276,13 @@ public class Robot extends TimedRobot
   @Override
   public void teleopInit()
   {
-    
-
     intake.resetPID();
     intake.enablePID(false);
     currentTime.reset();
     currentTime.start();
 
     dataCollection.startDataCollection();
+    balance.StopBalancing();
   }
 
 
@@ -317,13 +318,14 @@ public class Robot extends TimedRobot
                                                   xboxStowPos,
                                                   xboxPickUpGroundPos,
                                                   xboxAux.getPOV() == DPAD_DN,
-                                                  xboxDrv.getPOV() == DPAD_UP);
+                                                  false);
   
-                                                  /* 
-    elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Mnaual Hold Elevator Power
+                                                  
+    elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
                             xboxElevatorManualMode,  // Enter Manual Mode
                             commandedStateUpdate);
-                            */
+                            
+                            
 
     arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
                    xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 

@@ -22,10 +22,10 @@ public class CatzAutonomousPaths
     /*------------------------------------------------------------------------------------
     *  Field Relative angles when robot is TBD - Finish Comment  
     *-----------------------------------------------------------------------------------*/
-    private final double FWD_OR_BWD  =   0.0;
-    private final double RIGHT       =  -90.0; 
-    private final double LEFT        =   90.0;
-    private final double BIAS_OFFSET =  -2.0;
+    private final double BIAS_OFFSET =   0.0;
+    private final double FWD_OR_BWD  =   0.0 + BIAS_OFFSET;
+    private final double RIGHT       =   90.0; 
+    private final double LEFT        =   -90.0;
 
     private final double INDEXER_EJECT_TIME = 0.5;  //TBD - Put in Indexer
 
@@ -36,15 +36,15 @@ public class CatzAutonomousPaths
     private final int LEFT_SCORE_2                        = 2;
     private final int LEFT_SCORE_1_BALANCE                = 3;
 
-    private final int CENTER_SCORE_1_LOW                    = 20;
-    private final int CENTER_SCORE_1_MID_BALANCE            = 21;
-    private final int CENTER_SCORE_1_HIGH_BALANCE           = 22;
+    private final int CENTER_SCORE_1_LOW                  = 20;
+    private final int CENTER_SCORE_1_MID_BALANCE          = 21;
+    private final int CENTER_SCORE_1_HIGH_BALANCE         = 22;
 
-    private final int RIGHT_SCORE_1                        = 40;
-    private final int RIGHT_SCORE_2                        = 41;
-    private final int RIGHT_SCORE_1_BALANCE                = 42;
+    private final int RIGHT_SCORE_1                       = 40;
+    private final int RIGHT_SCORE_2                       = 41;
+    private final int RIGHT_SCORE_1_BALANCE               = 42;
 
-    private final int TEST                  = 100;
+    private final int TEST                            = 100;
 
 
 
@@ -91,8 +91,8 @@ public class CatzAutonomousPaths
         chosenPath.addOption       ("Left Score 2",           LEFT_SCORE_2);
         chosenPath.addOption       ("Left Score 1 Balance",   LEFT_SCORE_1_BALANCE);
 
-        chosenPath.addOption       ("Center Score 1 Low",         CENTER_SCORE_1_LOW);
-        chosenPath.addOption       ("Center Score 1 Mid Balance", CENTER_SCORE_1_MID_BALANCE);
+        chosenPath.addOption       ("Center Score 1 Low",          CENTER_SCORE_1_LOW);
+        chosenPath.addOption       ("Center Score 1 Mid Balance",  CENTER_SCORE_1_MID_BALANCE);
         chosenPath.addOption       ("Center Score 1 High Balance", CENTER_SCORE_1_HIGH_BALANCE);
 
         chosenPath.addOption       ("Right Score 1",          RIGHT_SCORE_1);
@@ -102,7 +102,6 @@ public class CatzAutonomousPaths
         chosenPath.addOption       ("TEST PATH",  TEST);
 
         SmartDashboard.putData     ("Auton Path", chosenPath);
-
     
     }
 
@@ -115,7 +114,7 @@ public class CatzAutonomousPaths
 
         switch (pathID)
         {
-            case LEFT_SCORE_1: SideScore1(); //Scores High Cone - TBD
+            case LEFT_SCORE_1: sideScore1(); //Scores High Cone - TBD
             break;
 
             case LEFT_SCORE_2: LeftScore2(); //Scores High Cone + Low Cone - TBD
@@ -124,16 +123,16 @@ public class CatzAutonomousPaths
             case LEFT_SCORE_1_BALANCE: LeftScore1Balance(); //Scores High Cone - TBD
             break;
 
-            case CENTER_SCORE_1_LOW: CenterScore1(); //Scores Low Cone - TBD
+            case CENTER_SCORE_1_LOW: centerScore1HighCone(); 
             break;
 
-            case CENTER_SCORE_1_MID_BALANCE: CenterScore1MidBalance();  //Scores Mid Cone - TBD
+            case CENTER_SCORE_1_MID_BALANCE: centerScore1MidBalance();  //Scores Mid Cone - TBD
             break;
 
-            case CENTER_SCORE_1_HIGH_BALANCE: CenterScore1HighBalance(); //Scores High Cone - TBD
+            case CENTER_SCORE_1_HIGH_BALANCE: centerScore1HighConeBalance(); //Scores High Cone - TBD
             break;
 
-            case RIGHT_SCORE_1: SideScore1(); //Scores High Cone - TBD
+            case RIGHT_SCORE_1: sideScore1(); //Scores High Cone - TBD
             break;
 
             case RIGHT_SCORE_2: RightScore2(); //Scores High Cone + Low Cone - TBD
@@ -148,69 +147,52 @@ public class CatzAutonomousPaths
 
     }
 
+
     public void testPath()
     {
-        //scoreConeHigh();
-        pickUpCone();
-        Timer.delay(1.0);
-        Robot.intake.rollersOff();
-        Timer.delay(0.2);
-        stow();
+        Balance();
     }
 
 
 
-
-   
-
-
-
-  /*-----------------------------------------------------------------------------------------
-   *    
-   * * Auton Functions
-   * 
-   *----------------------------------------------------------------------------------------*/
-
+    /*-----------------------------------------------------------------------------------------
+    *    
+    *  Auton Functions
+    * 
+    *----------------------------------------------------------------------------------------*/
     public void Balance()
     {
         Robot.balance.StartBalancing();
     }
 
-    /*-------------------------------------------------------------------------
-     *
-     * CODE FROM OVERTIME
-     * 
-     * ------------------------------------------------------------------------
-     */
-    public void SideScore1()
+
+    /*-----------------------------------------------------------------------------------------
+    *    
+    *  Auton Paths
+    * 
+    *----------------------------------------------------------------------------------------*/
+    public void sideScore1()
     {
         scoreConeHigh();
 
-        Robot.auton.DriveStraight(100, LEFT, 2.0);     //From Grid to area to do 180 deg turn
-        Timer.delay(2.0);
-        Robot.auton.DriveStraight(100, RIGHT, 2.0);     //From Grid to area to do 180 deg turn
-
+        Robot.auton.DriveStraight(200, FWD_OR_BWD,  4.0);     //From Grid to exit community
     }
 
-    public void sideScore2()
+    public void sideScore1Pickup1()
     {
         scoreConeHigh();
 
         Robot.auton.DriveStraight( 30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
 
-        Robot.auton.TurnInPlace(180, 2);
+        Robot.auton.TurnInPlace(180, 2.0);
 
-        pickUpCone();
+        pickUpCube();
         
-        Robot.auton.DriveStraight(176, FWD_OR_BWD, 5.0); //was 200 before, too far; over center line...was 172 before, too short, now 
-        Timer.delay(1.50);
+        Robot.auton.DriveStraight(176, FWD_OR_BWD, 5.0);  
+        Timer.delay(0.1); 
         stow();
-        Timer.delay(0.75);
 
-        Robot.auton.TurnInPlace(180, 2);
-
-        Robot.auton.DriveStraight(-214, FWD_OR_BWD, 5.0);
-        scoreConeLow();
+        Robot.auton.TurnInPlace(180, 2.0);
     }
 
 
@@ -228,12 +210,13 @@ public class CatzAutonomousPaths
             direction = LEFT;
         }
 
-        sideScore2();
+        sideScore1Pickup1();
+        Robot.auton.DriveStraight(-220, FWD_OR_BWD, 5.0);
 
-        Robot.auton.DriveStraight( 48,  direction, 2.0);    //Move in front of center node
-        Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
+        Robot.auton.DriveStraight( 40,  direction, 2.0);    //Move in front of center node
+        // Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
 
-        scoreConeLow();
+        scoreCubeHigh();
     }
 
         
@@ -250,12 +233,13 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        sideScore2();
+        sideScore1Pickup1();
+        Robot.auton.DriveStraight(-200, FWD_OR_BWD, 5.0);
 
         Robot.auton.DriveStraight( 48,  direction, 2.0);    //Move in front of center node
         Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
 
-        scoreConeLow();
+        scoreCubeHigh();
     }
 
     public void LeftScore1Balance()
@@ -271,22 +255,11 @@ public class CatzAutonomousPaths
             direction = LEFT;
         }
 
-        scoreConeHigh();
+        sideScore1Pickup1();
 
-        Robot.auton.DriveStraight(180, FWD_OR_BWD+BIAS_OFFSET, 7.0);     //From Grid to area to do 180 deg turn
-
-        Robot.auton.TurnInPlace(180, 2);
-
-        pickUpCone();
-        Timer.delay(0.75);
-        Robot.auton.DriveStraight(22, FWD_OR_BWD+BIAS_OFFSET, 2.0);
-        Timer.delay(0.5);
-        stow();
-        Timer.delay(0.75);
-        Robot.auton.TurnInPlace(180, 2);
-        Robot.auton.DriveStraight(-42, FWD_OR_BWD+BIAS_OFFSET, 5.0);
+        Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
         Robot.auton.DriveStraight(60, direction, 2.0);
-        Robot.auton.DriveStraight(-80, FWD_OR_BWD+BIAS_OFFSET, 2.0);
+        Robot.auton.DriveStraight(-80, FWD_OR_BWD, 2.0);
         Balance();
     }
 
@@ -304,17 +277,8 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        scoreConeHigh();
+        sideScore1Pickup1();
 
-        Robot.auton.DriveStraight(30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
-
-        Robot.auton.TurnInPlace(180, 2);
-
-        Robot.auton.DriveStraight(150, FWD_OR_BWD, 5.0);
-        pickUpCone();
-        Robot.auton.DriveStraight(22, FWD_OR_BWD, 2.0);
-        stow();
-        Robot.auton.TurnInPlace(180, 2);
         Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
         Robot.auton.DriveStraight(48, direction, 2.0);
         Robot.auton.DriveStraight(-80, FWD_OR_BWD, 2.0);
@@ -322,84 +286,103 @@ public class CatzAutonomousPaths
 
     }
 
-    public void CenterScore1MidBalance() 
+    public void centerScore1MidBalance() 
     {
-        scoreConeMid();
-        Robot.auton.DriveStraight(110, FWD_OR_BWD, 4.0); //offset was previously -7 applied to FW_OR_BACK
+        centerScore1MidCone(); 
+        Robot.auton.DriveStraight(-70, FWD_OR_BWD, 4.0); 
         Balance();
     }
 
-    public void CenterScore1HighBalance() 
+    public void centerScore1HighConeBalance() 
     {
-        scoreConeHigh();
-        Robot.auton.DriveStraight(110, FWD_OR_BWD, 4.0);
+        centerScore1HighCone();
+        Timer.delay(1.0);//wait for balance to level out
+        Robot.auton.DriveStraight(-70, FWD_OR_BWD, 4.0);
         Balance();
     }
  
-    public void CenterScore1() 
+    public void centerScore1HighCone() 
     {
-        scoreConeLow();
-        Robot.auton.DriveStraight(200, FWD_OR_BWD, 4.0);
+        scoreConeHigh();
+        Robot.auton.DriveStraightoffChargeStation(157, FWD_OR_BWD, 4.0);
     }
 
+    public void centerScore1MidCone() 
+    {
+        scoreConeMid();
+        Robot.auton.DriveStraight(176, FWD_OR_BWD, 4.0); //TBD update timeout and the distance cnts
+    }
 
 
 
 
     public void scoreConeLow()
     {
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CONE, Robot.GP_CONE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CONE, Robot.GP_CONE);
 
-       ejectCone();
-
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        scoreCone();
     }
 
     public void scoreConeMid()
     {
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CONE);
-
-       ejectCone();
-
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CONE);
+        Timer.delay(0.5);
+        scoreCone();
     }
 
     public void scoreConeHigh()
     {
-        System.out.println("score cone high");
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CONE, Robot.GP_CONE);
-
-       ejectCone();
-
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CONE, Robot.GP_CONE);
+        scoreCone();
     }
 
 
     public void scoreCubeLow()
     {
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CUBE, Robot.GP_CUBE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CUBE, Robot.GP_CUBE);
 
-       ejectCube();
-
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        scoreCube();
     }
 
     public void scoreCubeMid()
     {
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
 
-       ejectCube();
-
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        scoreCube();
     }
 
     public void scoreCubeHigh()
     {
-       setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE, Robot.GP_CUBE);
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE, Robot.GP_CUBE);
 
-       ejectCube();
+        scoreCube();
+    }
 
-       setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+    public void scoreCube()
+    {
+        ejectCube();
+        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        Robot.intake.rollersOff();
+    }
+
+    public void scoreCone()
+    {
+        ejectCone();
+        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        Robot.intake.rollersOff();
+    }
+
+    public void ejectCube()
+    {
+        Robot.intake.rollersOutCube();
+        Timer.delay(0.1); //TBD will need to change
+    }
+
+    public void ejectCone()
+    {
+        Robot.intake.rollersOutCone();
+        Timer.delay(0.2);
+        
     }
 
 
@@ -409,34 +392,32 @@ public class CatzAutonomousPaths
         int timeout = 0;
         boolean done = false;
 
-        System.out.println("set cmdstate auton block");
+        Robot.selectedGamePiece = gamePiece;
 
         Robot.elevator.cmdProcElevator(0.0,   false, cmdState);
         Robot.arm.cmdProcArm          (false, false, cmdState);
         Robot.intake.cmdProcIntake    (0.0, false, false, false, false, cmdState, gamePiece);
 
-        while(!done && timeout <= 3000 && cmdState != Robot.COMMAND_UPDATE_STOW)
+        if(cmdState != Robot.COMMAND_UPDATE_STOW)
         {
-            done = (Robot.elevator.isElevatorInPos() == true && Robot.arm.isArmInPos() == true && Robot.intake.isIntakeInPos() == true);
-            timeout++;
-            Timer.delay(0.001);
+            while(!done)
+            {
+                if(Robot.elevator.isElevatorInPos() == true && 
+                   Robot.arm.isArmInPos()           == true && 
+                   Robot.intake.isIntakeInPos()     == true)
+                {
+                    done = true;
+                }
+
+                timeout++;
+                if(timeout >= 200)
+                {
+                    done = true;
+                }
+
+                Timer.delay(0.010);
+            }
         }
-    }
-
-
-
-    public void ejectCube()
-    {
-        Robot.intake.rollersOutCube();
-        Timer.delay(0.2);
-        Robot.intake.rollersOff();
-    }
-
-    public void ejectCone()
-    {
-        Robot.intake.rollersOutCone();
-        Timer.delay(1.0);
-        Robot.intake.rollersOff();
     }
 
     public void pickUpCone()
@@ -453,7 +434,7 @@ public class CatzAutonomousPaths
 
     public void stow()
     {
-        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
         Robot.intake.rollersOff();
+        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
 }

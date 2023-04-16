@@ -27,10 +27,10 @@ public class CatzDrivetrain
     private final int RT_BACK_ENC_PORT = 7;
     private final int RT_FRNT_ENC_PORT = 8;
 
-    private final double LT_FRNT_OFFSET =  0.0133; //MC ID 2
-    private final double LT_BACK_OFFSET =  0.0498; //MC ID 4
-    private final double RT_BACK_OFFSET =  0.2533; //MC ID 6
-    private final double RT_FRNT_OFFSET =  0.0222; //MC ID 8
+    private final double LT_FRNT_OFFSET =  0.0168; //-0.0013; //MC ID 2
+    private final double LT_BACK_OFFSET =  0.0432; //0.0498; //MC ID 4
+    private final double RT_BACK_OFFSET =  0.2533; //0.2533; //MC ID 6
+    private final double RT_FRNT_OFFSET =  0.0226; //0.0222; //MC ID 8
 
     private final double NOT_FIELD_RELATIVE = 0.0;
 

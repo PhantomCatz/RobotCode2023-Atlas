@@ -146,6 +146,7 @@ public class DataCollection
         chosenDataID.addOption("Elevator", LOG_ID_ELEVATOR);
         chosenDataID.addOption("Auton Drv Straight", LOG_ID_DRV_STRAIGHT);
         chosenDataID.addOption("Auton Turn In Place", LOG_ID_TURN_IN_PLACE);
+        chosenDataID.addOption("Balance", LOG_ID_BALANCE);
 
         SmartDashboard.putData("Data Collection", chosenDataID);
     

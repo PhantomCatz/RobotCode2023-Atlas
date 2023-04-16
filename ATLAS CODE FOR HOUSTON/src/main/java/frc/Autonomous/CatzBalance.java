@@ -1,5 +1,7 @@
 package frc.Autonomous;
 
+import javax.lang.model.util.ElementScanner14;
+
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
@@ -14,18 +16,19 @@ public class CatzBalance
 
     public  Boolean startBalance = false;
 
-    public static double prevPitchAngle = 0.0;
-    public static double pitchAngle = 0.0;
+    public static double prevBalanceAngle = 0.0;
+    public static double balanceAngle = 0.0;
     public static double angleRate = 0.0;
     public static double power = 0.0;
-    public static double pitchTerm = 0.0;
+    public static double angleTerm = 0.0;
     public static double rateTerm = 0.0;
+    public static double powerFinal = 0.0;
 
     public static CatzLog data;
 
     public final double ANG_SLOWBAND = 10.0; 
-    public final double ANG_GAIN = 0.045;
-    public final double RATE_GAIN = 0.0075;
+    public final double ANG_GAIN = 0.007;
+    public final double RATE_GAIN = 0.002;
     public final double MAX_POWER = 0.35;
     public final double BALANCE_THREAD_PERIOD = 0.02;
 
@@ -72,29 +75,41 @@ public class CatzBalance
                     {
                         time = timer.get();
 
-                        pitchAngle = Robot.navX.getPitch(); 
-                        angleRate = (pitchAngle - prevPitchAngle)/(time - prevTime);
+                        balanceAngle = Robot.navX.getRoll(); 
+                        angleRate = (balanceAngle - prevBalanceAngle)/(time - prevTime);
 
                         // PID without the I
-                        pitchTerm = pitchAngle * ANG_GAIN;
+                        angleTerm = balanceAngle * ANG_GAIN;
                         rateTerm = angleRate * RATE_GAIN;
 
-                        power = Clamp(-MAX_POWER, pitchTerm + rateTerm, MAX_POWER);
-                        if(Math.abs(pitchAngle) < ANG_SLOWBAND)
+                        power = Clamp(-MAX_POWER, angleTerm + rateTerm, MAX_POWER);
+
+                        if(Math.abs(power)< 0.07)
                         {
-                            power = power/2;
+                            if(power < 0)
+                            {
+                                power = -0.04;
+                            }
+                            else if(power > 0)
+                            {
+                                power = 0.04;
+                            }
+                            
+                            if(Math.abs(balanceAngle) < 2.0)
+                            {
+                                power = 0.0;
+                            }
                         }
+                    
                         
-
-                        Robot.drivetrain.drive(0.0, -power, 0.0); //TBD
+                        Robot.drivetrain.drive(0.0, -power, 0.0); 
                         
-
-                        prevPitchAngle = pitchAngle;
+                        prevBalanceAngle = balanceAngle;
                         prevTime = time;
 
                         if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_BALANCE)
                         {
-                            data = new CatzLog(time, pitchAngle, angleRate, power, pitchTerm, rateTerm, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0);  
+                            data = new CatzLog(time, balanceAngle, angleRate, power, powerFinal, angleTerm, rateTerm, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0);  
                             Robot.dataCollection.logData.add(data);
                         }
                     }
@@ -112,7 +127,7 @@ public class CatzBalance
         timer.start();
         
         prevTime = 0.0;
-        prevPitchAngle = 0.0;
+        prevBalanceAngle = 0.0;
 
         startBalance = true;
     }
@@ -130,6 +145,6 @@ public class CatzBalance
 
     public void SmartDashboardBalance()
     {
-        SmartDashboard.putNumber("Pitch", pitchAngle);
+        SmartDashboard.putNumber("Pitch", balanceAngle);
     }
 }

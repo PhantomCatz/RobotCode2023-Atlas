@@ -7,8 +7,13 @@ import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.drive.RobotDriveBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.DataLogger.CatzLog;
+import frc.DataLogger.DataCollection;
 import frc.robot.*;
 
 public class CatzArm
@@ -76,11 +81,15 @@ public class CatzArm
     private double targetPosition = -999.0;
     private double currentPosition = -999.0;
     private double positionError = -999.0; 
+    private double elevatorPosition = -999.0;
 
     private boolean armInPosition = false;
+    private int numConsectSamples = 0;
 
     private final double ERROR_ARM_THRESHOLD = 500;
     private final double NO_TARGET_POSITION = -999999.0;
+
+    CatzLog data;
 
 
     public CatzArm()
@@ -123,7 +132,6 @@ public class CatzArm
         {
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE :    
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE : 
-            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE :
             case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CUBE :
             case Robot.COMMAND_UPDATE_SCORE_LOW_CONE:
             case Robot.COMMAND_UPDATE_SCORE_LOW_CUBE:
@@ -146,6 +154,7 @@ public class CatzArm
             break;
 
             case Robot.COMMAND_UPDATE_STOW           :
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE :
             case Robot.COMMAND_UPDATE_SCORE_MID_CUBE :
             case Robot.COMMAND_UPDATE_SCORE_MID_CONE :
                 highExtendProcess = false;
@@ -197,12 +206,28 @@ public class CatzArm
             {
                 if(highExtendProcess == true)
                 {
-                    if (Robot.elevator.getElevatorEncoder() >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR)
-                    {
+                    System.out.println(highExtendProcess);
+                    elevatorPosition = Robot.elevator.getElevatorEncoder();
 
-                        System.out.println("arm extend cmd");
-                        armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
-                        highExtendProcess = false;
+                    if(DriverStation.isAutonomousEnabled() && Robot.selectedGamePiece == Robot.GP_CONE)
+                    {
+                        System.out.println("in s");
+                        if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR && 
+                           Robot.intake.isIntakeInPos())
+                        {
+                            System.out.println("A-arm extend cmd");
+                            armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
+                            highExtendProcess = false;
+                        }
+                    }
+                    else
+                    {
+                        if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR)
+                        {
+                            System.out.println("Tarm extend cmd");
+                            armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
+                            highExtendProcess = false; 
+                        }
                     }
                 }
 
@@ -210,11 +235,32 @@ public class CatzArm
                 positionError = currentPosition - targetPosition;
                 if  ((Math.abs(positionError) <= ERROR_ARM_THRESHOLD) && targetPosition != NO_TARGET_POSITION)
                 {
-                    armInPosition = true;
                     targetPosition = NO_TARGET_POSITION;
+                    numConsectSamples++;
+                        if(numConsectSamples >= 10)
+                        {   
+                            armInPosition = true;
+                        }
                 }
-                //TBD
+                else
+                {
+                    numConsectSamples = 0;
+                }
+                
 
+                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE)) 
+                {        
+                    data = new CatzLog(Robot.currentTime.get(), targetPosition, currentPosition, 
+                                                                positionError, 
+                                                                armMtr.getMotorOutputPercent(),
+                                                                            -999.0, -999.0, -999.0, -999.0, -999.0,
+                                                                            -999.0, -999.0, -999.0, -999.0, -999.0,
+                                                                            DataCollection.boolData);
+                                            
+                    Robot.dataCollection.logData.add(data);
+                }
+
+                Timer.delay(0.02);
             }   //End of while(true)
         });
         armThread.start();

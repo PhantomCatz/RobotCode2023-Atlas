@@ -4,7 +4,9 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 import com.ctre.phoenix.sensors.CANCoder;
+import com.ctre.phoenix.sensors.SensorInitializationStrategy;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.Timer;
@@ -24,8 +26,11 @@ public class CatzIntake
 
     private final int ROLLERS_MC_ID  = 30;
 
-    private final double ROLLERS_PWR_CUBE = 0.4;   
-    private final double ROLLERS_PWR_CONE = 0.4;
+    private final double ROLLERS_PWR_CUBE_IN = -0.8;   
+    private final double ROLLERS_PWR_CONE_IN =  1.0; //TBD decide pwrs for all cube cone scoring rollers
+
+    private final double ROLLERS_PWR_CUBE_OUT =  1.0;   
+    private final double ROLLERS_PWR_CONE_OUT = -0.5;
 
     private SupplyCurrentLimitConfiguration rollerCurrentLimit;
 
@@ -55,45 +60,44 @@ public class CatzIntake
     //----------------------------------------------------------------------------------------------
     //  Wrist encoder & Position Values
     //----------------------------------------------------------------------------------------------
-    private CANCoder wristEncoder;
-
     private final int    WRIST_ENC_CAN_ID = 13; 
 
 
-    private final double ENC_TO_INTAKE_GEAR_RATIO =  18.0 / 46.0;
-    private final double WRIST_DEGREE_PER_CNT     = 360.0 / 4096.0 * ENC_TO_INTAKE_GEAR_RATIO;
+    private final double ENC_TO_INTAKE_GEAR_RATIO =  46.0/18.0;
+    private final double WRIST_CNTS_PER_DEGREE    = 46.459; //(4096.0 * ENC_TO_INTAKE_GEAR_RATIO) / 360.0;
 
 
-    private final double MANUAL_HOLD_STEP_SIZE = 50.0;       
+    private final double MANUAL_HOLD_STEP_SIZE = 1.5;       
 
     //TBD - ADD comment for ref point
-    private final double CENTER_OF_MASS_DEGREE_OFFSET     = 4.758;
-    private final double WRIST_ABS_ENC_OFFSET = -989.0; //Negative value means abs enc 0 is above intake angle 0      //TBD - whats the difference between these?
+    private final double CENTER_OF_MASS_OFFSET_DEG     = 177.0; 
+    private final double WRIST_ABS_ENC_OFFSET_DEG = 0.0; //Set to make stow pos equal to 0
+    private final double WRIST_ABS_ENC_OFFSET = WRIST_ABS_ENC_OFFSET_DEG * WRIST_CNTS_PER_DEGREE;//-989.0; //Negative value means abs enc 0 is above intake angle 0   
     
-    private final double STOW_ENC_POS               =  4872.0 + WRIST_ABS_ENC_OFFSET; //3883
-    private final double STOW_CUTOFF                =  4659.0 + WRIST_ABS_ENC_OFFSET; //3670
+    private final double STOW_ENC_POS               =  0.0 + WRIST_ABS_ENC_OFFSET_DEG;//4872.0 + WRIST_ABS_ENC_OFFSET; //3883
+    private final double STOW_CUTOFF                =  -7.232 + WRIST_ABS_ENC_OFFSET_DEG;// + WRIST_ABS_ENC_OFFSET; //3670
 
-    private final double INTAKE_CUBE_ENC_POS        =  1324.0 + WRIST_ABS_ENC_OFFSET;    //-335
-    private final double INTAKE_CONE_ENC_POS_GROUND = -306.0  + WRIST_ABS_ENC_OFFSET;  //-1295  
-    private final double INTAKE_CONE_ENC_POS_SINGLE =  2089.0 + WRIST_ABS_ENC_OFFSET;  //1100
+    private final double INTAKE_CUBE_ENC_POS        =  -148.000 + WRIST_ABS_ENC_OFFSET_DEG;//1324.0 + WRIST_ABS_ENC_OFFSET;    //-335
+    private final double INTAKE_CONE_ENC_POS_GROUND =  -184.524 + WRIST_ABS_ENC_OFFSET_DEG;//-306.0  + WRIST_ABS_ENC_OFFSET;  //-1295  
+    private final double INTAKE_CONE_ENC_POS_SINGLE =  -116.400 + WRIST_ABS_ENC_OFFSET_DEG;//2089.0 + WRIST_ABS_ENC_OFFSET;  //1100
 
-    private final double SCORE_CUBE_ENC_POS         =  1859.0 + WRIST_ABS_ENC_OFFSET;  //870     // Applies to low-mid-high
+    private final double SCORE_CUBE_ENC_POS         =  -104.000 + WRIST_ABS_ENC_OFFSET_DEG;//1859.0 + WRIST_ABS_ENC_OFFSET;  //870     // Applies to low-mid-high
 
-    private final double SCORE_CONE_HIGH_ENC_POS    =  289.0 + WRIST_ABS_ENC_OFFSET;  //-700
+    private final double SCORE_CONE_HIGH_ENC_POS    =  -153.000 + WRIST_ABS_ENC_OFFSET_DEG;//289.0 + WRIST_ABS_ENC_OFFSET;  //-700
     private final double SCORE_CONE_MID_ENC_POS     = INTAKE_CONE_ENC_POS_GROUND; //TBD verify if its the same as high
     private final double SCORE_CONE_LOW_ENC_POS     = INTAKE_CONE_ENC_POS_GROUND; //TBD
 
 
-    private final double SOFT_LIMIT_FORWARD =  4876  + WRIST_ABS_ENC_OFFSET;  //3887
-    private final double SOFT_LIMIT_REVERSE = -798.0 + WRIST_ABS_ENC_OFFSET; //-1787     //TBD
+    private final double SOFT_LIMIT_FORWARD = 0.0; //4876  + WRIST_ABS_ENC_OFFSET;  //3887
+    private final double SOFT_LIMIT_REVERSE = -8900.0; //-798.0 + WRIST_ABS_ENC_OFFSET; //-1787     //TBD
 
-    private final double GROSS_kP = 0.000085;//0.00009; 
+    private final double GROSS_kP = 0.002472;//0.00009; 
     private final double GROSS_kI = 0.0;//000040;
-    private final double GROSS_kD = 0.00001;//0.000007;
+    private final double GROSS_kD = 0.000291;//0.000007;
 
-    private final double FINE_kP = 0.000185;//0.00009; 
-    private final double FINE_kI = 0.0;//000040;
-    private final double FINE_kD = 0.00001;//0.000007;
+    private final double FINE_kP = 0.005234;//0.00009; 
+    private final double FINE_kI = 0.0;//000008;
+    private final double FINE_kD = 0.000291;//0.000007;
     
     private final double MAX_GRAVITY_FF = 0.055; //0.09
 
@@ -102,8 +106,7 @@ public class CatzIntake
     
     private Boolean  pidEnable = false;
 
-    private double   targetPositionEnc = STOW_ENC_POS;
-    private double   prevTargetPosition = 0.0;
+    private double   targetPositionDeg = STOW_ENC_POS;
 
     private double   targetPower = 0.0;
     private double   prevTargetPwr = 0.0;
@@ -116,10 +119,13 @@ public class CatzIntake
 
     private boolean intakeInPosition = false;
 
-    private final double ERROR_INTAKE_THRESHOLD = 500;
+    private final double ERROR_INTAKE_THRESHOLD_DEG = 5.0;
+    private final double PID_FINE_GROSS_THRESHOLD_DEG = 17.0;
 
     private double pidPower = 0.0;
     private double ffPower = 0.0;
+
+    private int numConsectSamples = 0;
 
 
 
@@ -161,9 +167,14 @@ public class CatzIntake
         //----------------------------------------------------------------------------------------------
         //  Wrist
         //----------------------------------------------------------------------------------------------
-        wristEncoder = new CANCoder(WRIST_ENC_CAN_ID); 
-
         wristMtr = new WPI_TalonFX(WRIST_MC_ID);
+
+        wristMtr.configFactoryDefault();
+
+        wristMtr.configIntegratedSensorInitializationStrategy(SensorInitializationStrategy.BootToAbsolutePosition);
+        wristMtr.configIntegratedSensorAbsoluteRange(AbsoluteSensorRange.Unsigned_0_to_360);
+        wristMtr.configIntegratedSensorOffset(0.0);
+        
         wristMtr.setNeutralMode(NeutralMode.Brake);
 
         wristMtr.configForwardSoftLimitThreshold(SOFT_LIMIT_FORWARD);
@@ -179,7 +190,6 @@ public class CatzIntake
 
         pid = new PIDController(GROSS_kP, GROSS_kI, GROSS_kD);
        
-
         startIntakeThread();
     }
 
@@ -202,37 +212,48 @@ public class CatzIntake
                     //----------------------------------------------------------------------------------
                     //  Chk if at final position
                     //----------------------------------------------------------------------------------
-                    currentPosition = wristMtr.getSelectedSensorPosition();
+                    currentPosition = wristMtr.getSelectedSensorPosition() / WRIST_CNTS_PER_DEGREE;
 
-                    ffPower = calculateGravityFF();
-                    positionError = currentPosition - targetPositionEnc;
+                    positionError = currentPosition - targetPositionDeg;
 
 
-                    if  ((Math.abs(positionError) <= ERROR_INTAKE_THRESHOLD))
+                    if  ((Math.abs(positionError) <= ERROR_INTAKE_THRESHOLD_DEG))
                     {
-                        intakeInPosition = true;
+                        numConsectSamples++;
+                        if(numConsectSamples >= 1)
+                        {   
+                            intakeInPosition = true;
+                        }
+                    }
+                    else
+                    {
+                        numConsectSamples = 0;
                     }
                     
                     
-                    if(Math.abs(positionError) >= 500)
+                    if(Math.abs(positionError) >= PID_FINE_GROSS_THRESHOLD_DEG)
                     {
                         pid.setP(GROSS_kP);
                         pid.setI(GROSS_kI);
                         pid.setD(GROSS_kD);
-                        System.out.println("gross" + positionError);
                     }
-                    else if(Math.abs(positionError) < 500)
+                    else if(Math.abs(positionError) < PID_FINE_GROSS_THRESHOLD_DEG)
                     {
                         pid.setP(FINE_kP);
                         pid.setI(FINE_kI);
                         pid.setD(FINE_kD);
-                        System.out.println("FINE" + positionError);
                     }
 
-                    pidPower = pid.calculate(currentPosition, targetPositionEnc);
+                    pidPower = pid.calculate(currentPosition, targetPositionDeg);
+                    ffPower = calculateGravityFF();
                     targetPower = pidPower + ffPower;
 
-                    if(prevCurrentPosition == currentPosition && prevTargetPosition == targetPositionEnc)
+                    //-------------------------------------------------------------
+                    //  checking if we did not get updated position value(Sampling Issue).
+                    //  If no change in position, this give invalid target power(kD issue).
+                    //  Therefore, go with prev targetPower Value.
+                    //-------------------------------------------------------------------
+                    if(prevCurrentPosition == currentPosition)
                     {
                         targetPower = prevTargetPwr;
                     }
@@ -242,7 +263,7 @@ public class CatzIntake
                     //  power to 0, otherwise calculate new motor power based on position error and 
                     //  current angle
                     //----------------------------------------------------------------------------------
-                    if(targetPositionEnc == STOW_ENC_POS && currentPosition > STOW_CUTOFF)
+                    if(targetPositionDeg == STOW_ENC_POS && currentPosition > STOW_CUTOFF)
                     {
                         targetPower = 0.0;
                     }
@@ -250,13 +271,13 @@ public class CatzIntake
 
                     prevCurrentPosition = currentPosition;
                     prevTargetPwr = targetPower;
-                    prevTargetPosition = targetPositionEnc;
+                   
                 }
 
 
                 if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE)) 
                 {        
-                    data = new CatzLog(Robot.currentTime.get(), targetPositionEnc, currentPosition, 
+                    data = new CatzLog(Robot.currentTime.get(), targetPositionDeg, currentPosition, 
                                                                 targetPower, 
                                                                 pidPower,
                                                                 ffPower,
@@ -297,12 +318,16 @@ public class CatzIntake
             {
                 intakeMovementMode = Robot.MODE_MANUAL_HOLD;
 
-                if(wristPwr > 0){
-                    targetPositionEnc = Math.min((targetPositionEnc + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_FORWARD);
+                if(wristPwr > 0)
+                {
+                    targetPositionDeg = Math.min((targetPositionDeg + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_FORWARD);
                 }
-                else{
-                    targetPositionEnc = Math.max((targetPositionEnc + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_REVERSE);
+                else
+                {
+                    targetPositionDeg = Math.max((targetPositionDeg + wristPwr * MANUAL_HOLD_STEP_SIZE), SOFT_LIMIT_REVERSE);
                 }
+                prevCurrentPosition = -prevCurrentPosition; //intialize for first time through thread loop, that checks stale position values
+
             }
             else //in full manual mode
             {
@@ -353,48 +378,45 @@ public class CatzIntake
         {
             pid.reset();
             pidEnable = true;
+            intakeInPosition = false;
             intakeMovementMode = Robot.MODE_AUTO;
+            prevCurrentPosition = -prevCurrentPosition; //intialize for first time through thread loop, that checks stale position values
 
             switch(state)
             {
                 case Robot.COMMAND_UPDATE_STOW :
-                    targetPositionEnc = STOW_ENC_POS;
+                    targetPositionDeg = STOW_ENC_POS;
                     break;
                     
                 case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE :
-                    targetPositionEnc = INTAKE_CONE_ENC_POS_GROUND;
+                    targetPositionDeg = INTAKE_CONE_ENC_POS_GROUND;
                     break;
                     
                 case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE :
-                    targetPositionEnc = INTAKE_CUBE_ENC_POS;
+                    targetPositionDeg = INTAKE_CUBE_ENC_POS;
                     break;
 
                 case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE :
-                    targetPositionEnc = INTAKE_CONE_ENC_POS_SINGLE;
+                    targetPositionDeg = INTAKE_CONE_ENC_POS_SINGLE;
                     break;
                     
                 case Robot.COMMAND_UPDATE_SCORE_LOW_CONE :
-                    targetPositionEnc = SCORE_CONE_LOW_ENC_POS;
+                    targetPositionDeg = SCORE_CONE_LOW_ENC_POS;
+                    Timer.delay(0.1);//wait for arm to deploy
                     break;
     
                 case Robot.COMMAND_UPDATE_SCORE_LOW_CUBE :
-                    targetPositionEnc = SCORE_CUBE_ENC_POS;
-                    break;
-
                 case Robot.COMMAND_UPDATE_SCORE_MID_CUBE :
-                    targetPositionEnc = SCORE_CUBE_ENC_POS;
-                    break;
-
                 case Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE:
-                    targetPositionEnc = SCORE_CUBE_ENC_POS;
+                    targetPositionDeg = SCORE_CUBE_ENC_POS;
                     break;
     
                 case Robot.COMMAND_UPDATE_SCORE_MID_CONE :
-                    targetPositionEnc = SCORE_CONE_MID_ENC_POS;
+                    targetPositionDeg = SCORE_CONE_MID_ENC_POS;
                     break;
                     
                 case Robot.COMMAND_UPDATE_SCORE_HIGH_CONE :
-                    targetPositionEnc = SCORE_CONE_HIGH_ENC_POS;
+                    targetPositionDeg = SCORE_CONE_HIGH_ENC_POS;
                     break;
 
                 default:
@@ -447,22 +469,22 @@ public class CatzIntake
 
     public void rollersInCube()
     {
-        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR_CUBE);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CUBE_IN);
     }
 
     public void rollersOutCube()
     {
-        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CUBE);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CUBE_OUT);
     }
 
     public void rollersInCone()
     {
-        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CONE);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CONE_IN);
     }
 
     public void rollersOutCone()
     {
-        rollersMtr.set(ControlMode.PercentOutput, -ROLLERS_PWR_CONE);
+        rollersMtr.set(ControlMode.PercentOutput, ROLLERS_PWR_CONE_OUT);
     }
     
 
@@ -473,13 +495,13 @@ public class CatzIntake
     *---------------------------------------------------------------------------------------------*/
     public double calcWristAngle()
     {
-        double wristAngle = (wristMtr.getSelectedSensorPosition() - WRIST_ABS_ENC_OFFSET) * WRIST_DEGREE_PER_CNT;
+        double wristAngle = ((wristMtr.getSelectedSensorPosition() / WRIST_CNTS_PER_DEGREE) - WRIST_ABS_ENC_OFFSET_DEG);
         return wristAngle;
     }
     
     public double calculateGravityFF()
     {
-        double radians = Math.toRadians(calcWristAngle() - CENTER_OF_MASS_DEGREE_OFFSET);
+        double radians = Math.toRadians(calcWristAngle() - CENTER_OF_MASS_OFFSET_DEG);
         double cosineScalar = Math.cos(radians);
         
         return MAX_GRAVITY_FF * cosineScalar;
@@ -505,16 +527,18 @@ public class CatzIntake
 
     public void smartdashboardIntakeDebug()
     {
-        SmartDashboard.putNumber ("abs enc cnts", wristMtr.getSelectedSensorPosition());
         SmartDashboard.putNumber ("wrist ang",  calcWristAngle());
         SmartDashboard.putNumber ("GravityFF",       calculateGravityFF());
-        SmartDashboard.putNumber ("ClosedLoopError", pid.getPositionError());
+        SmartDashboard.putNumber ("IntakeClosedLoopError", pid.getPositionError());
         SmartDashboard.putNumber ("applied output",  wristMtr.getMotorOutputPercent() );
         SmartDashboard.putBoolean("pid",             pidEnable);
+        SmartDashboard.putNumber ("mtr abs", wristMtr.getSelectedSensorPosition());
     }
 
     public boolean isIntakeInPos()
     {
         return intakeInPosition;
     }
+
+
 }
