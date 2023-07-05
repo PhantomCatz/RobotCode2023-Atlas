@@ -10,7 +10,8 @@ import frc.robot.Robot.gameModeLED;
 @SuppressWarnings("unused")
 public class CatzRGB 
 {
-    enum LEDSections{
+    enum LEDSections
+    {
         //dummy endpoints 65 total 34 left 31 right
         IntakeL(31, 32),   
         ArmL(22, 23),
@@ -23,7 +24,8 @@ public class CatzRGB
         //endpoints are inclusive
         private int start;
         private int end;
-        LEDSections(int start, int end){
+        LEDSections(int start, int end)
+        {
             this.start = start;
             this.end = end;
         }
@@ -66,7 +68,8 @@ public class CatzRGB
     private void threadInit(){
         flowThread = new Thread(() ->
         {
-            while(true){//flowEnabled || rainbowEnabled){ 
+            while(true){//flowEnabled || rainbowEnabled)
+            { 
                 RainbowPeriodic();
                 FlowPeriodic();
                 Timer.delay(THREAD_PERIOD);
@@ -83,7 +86,8 @@ public class CatzRGB
     {
         rainbowEnabled = false;
         flowEnabled = false;
-        for(int i=first; i<=last; i++){
+        for(int i=first; i<=last; i++)
+        {
             ledBuffer.setLED(i, color);
         }
     }
@@ -92,7 +96,8 @@ public class CatzRGB
     {
         rainbowEnabled = false;
         flowEnabled = false;
-        for(int i=0; i<LED_COUNT; i++){
+        for(int i=0; i<LED_COUNT; i++)
+        {
             ledBuffer.setLED(i, color);
         }
     }
