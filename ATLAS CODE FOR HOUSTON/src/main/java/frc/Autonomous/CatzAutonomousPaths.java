@@ -150,7 +150,7 @@ public class CatzAutonomousPaths
 
     public void testPath()
     {
-        Balance();
+        Robot.auton.DriveStraight(-100,FWD_OR_BWD,3.0);
     }
 
 

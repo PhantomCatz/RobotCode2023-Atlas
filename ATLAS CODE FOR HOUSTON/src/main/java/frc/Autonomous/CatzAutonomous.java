@@ -156,7 +156,7 @@ public class CatzAutonomous
                     turnPower *= Math.signum(drvPowerDirection);
                     
 
-                    Robot.drivetrain.translateTurn(directionDeg, drvPower, turnPower, Robot.drivetrain.getGyroAngle());
+                    Robot.drivetrain.translateTurn(directionDeg, drvPower * 0.5, turnPower, Robot.drivetrain.getGyroAngle());
                     prevTime       = time;
                     prevAngleError = angleError;
 

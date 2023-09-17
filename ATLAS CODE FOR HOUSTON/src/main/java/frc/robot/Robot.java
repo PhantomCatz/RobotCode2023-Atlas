@@ -290,77 +290,79 @@ public class Robot extends TimedRobot
   @Override
   public void teleopPeriodic()
   {
-    drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
 
-    if(xboxDrv.getStartButtonPressed())
-    {
-      zeroGyro();
-    }
+    drivetrain.cmdProcSwerve(0.0, xboxDrv.getLeftY()/2, xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis()); //TBD x needs to be 0.0
+    //drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
+
+    // if(xboxDrv.getStartButtonPressed())
+    // {
+    //   zeroGyro();
+    // }
 
 
-    xboxHighNode           = xboxAux.getYButton();
-    xboxMidNode            = xboxAux.getBButton();
-    xboxLowNode            = xboxAux.getAButton();
-    xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
-    xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
+    // xboxHighNode           = xboxAux.getYButton();
+    // xboxMidNode            = xboxAux.getBButton();
+    // xboxLowNode            = xboxAux.getAButton();
+    // xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
+    // xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
 
-    xboxElevatorManualMode = xboxAux.getRightStickButton();
-    xboxElevatorManualPwr  = xboxAux.getRightY();
+    // xboxElevatorManualMode = xboxAux.getRightStickButton();
+    // xboxElevatorManualPwr  = xboxAux.getRightY();
 
 
  
-    xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
-                           xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
+    // xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
+    //                        xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
 
-    determineCommandState(xboxGamePieceSelection, xboxLowNode, 
-                                                  xboxMidNode, 
-                                                  xboxHighNode, 
-                                                  xboxStowPos,
-                                                  xboxPickUpGroundPos,
-                                                  xboxAux.getPOV() == DPAD_DN,
-                                                  false);
+    // determineCommandState(xboxGamePieceSelection, xboxLowNode, 
+    //                                               xboxMidNode, 
+    //                                               xboxHighNode, 
+    //                                               xboxStowPos,
+    //                                               xboxPickUpGroundPos,
+    //                                               xboxAux.getPOV() == DPAD_DN,
+    //                                               false);
   
                                                   
-    elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
-                            xboxElevatorManualMode,  // Enter Manual Mode
-                            commandedStateUpdate);
+    // elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
+    //                         xboxElevatorManualMode,  // Enter Manual Mode
+    //                         commandedStateUpdate);
                             
                             
 
-    arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
-                   xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 
-                   commandedStateUpdate); 
+    // arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
+    //                xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 
+    //                commandedStateUpdate); 
 
-    intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
-                          xboxAux.getRightBumper(),             //Roller in 
-                          xboxAux.getLeftBumper(),              //Roller out
-                          xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
-                          (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
-                          commandedStateUpdate,
-                          selectedGamePiece);
+    // intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
+    //                       xboxAux.getRightBumper(),             //Roller in 
+    //                       xboxAux.getLeftBumper(),              //Roller out
+    //                       xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
+    //                       (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
+    //                       commandedStateUpdate,
+    //                       selectedGamePiece);
                          
-    commandedStateUpdate = COMMAND_STATE_NULL;
+    // commandedStateUpdate = COMMAND_STATE_NULL;
 
 
 
     
-    // Lock Wheels (Balancing)
-    if(xboxDrv.getBButton())
-    {
-      drivetrain.lockWheels();
-    }
+    // // Lock Wheels (Balancing)
+    // if(xboxDrv.getBButton())
+    // {
+    //   drivetrain.lockWheels();
+    // }
 
-    /*
-    if(DriverStation.getMatchTime() < 2.0)
-    {
-      led.matchDone = true;
+    // /*
+    // if(DriverStation.getMatchTime() < 2.0)
+    // {
+    //   led.matchDone = true;
 
-    }
-    else if(DriverStation.getMatchTime() < 15.0)
-    {
-      led.endGame = true;
-    }
-    */
+    // }
+    // else if(DriverStation.getMatchTime() < 15.0)
+    // {
+    //   led.endGame = true;
+    // }
+    // */
   }
 
 
@@ -407,7 +409,9 @@ public class Robot extends TimedRobot
   *----------------------------------------------------------------------------------------*/
   /** This function is called once when test mode is enabled. */
   @Override
-  public void testInit() {}
+  public void testInit() {
+    drivetrain.setWheelOffsets(drivetrain.getOffsetAverages());
+  }
 
   /** This function is called periodically during test mode. */
   @Override
