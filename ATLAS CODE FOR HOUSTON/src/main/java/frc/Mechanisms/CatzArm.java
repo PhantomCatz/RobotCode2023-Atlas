@@ -114,6 +114,8 @@ public class CatzArm
 
         armMtr.set(ControlMode.PercentOutput, MANUAL_CONTROL_PWR_OFF);
 
+        armMtr.configOpenloopRamp(1.0);
+
         startArmThread();
 
     }
@@ -149,7 +151,6 @@ public class CatzArm
                 highExtendProcess = true;
                 armMovementMode   = Robot.MODE_AUTO;
                 armInPosition = false;
-                System.out.println("A-Case-Hi");
                 targetPosition = POS_ENC_CNTS_EXTEND;
             break;
 
@@ -206,16 +207,14 @@ public class CatzArm
             {
                 if(highExtendProcess == true)
                 {
-                    System.out.println(highExtendProcess);
                     elevatorPosition = Robot.elevator.getElevatorEncoder();
 
                     if(DriverStation.isAutonomousEnabled() && Robot.selectedGamePiece == Robot.GP_CONE)
                     {
-                        System.out.println("in s");
+
                         if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR && 
                            Robot.intake.isIntakeInPos())
                         {
-                            System.out.println("A-arm extend cmd");
                             armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
                             highExtendProcess = false;
                         }
@@ -224,7 +223,6 @@ public class CatzArm
                     {
                         if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR)
                         {
-                            System.out.println("Tarm extend cmd");
                             armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
                             highExtendProcess = false; 
                         }
@@ -248,7 +246,7 @@ public class CatzArm
                 }
                 
 
-                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE)) 
+                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ARM)) 
                 {        
                     data = new CatzLog(Robot.currentTime.get(), targetPosition, currentPosition, 
                                                                 positionError, 
