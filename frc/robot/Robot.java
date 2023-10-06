@@ -5,6 +5,7 @@
 package frc.robot;
 
 import java.util.ArrayList;
+import java.util.function.Supplier;
 
 import com.kauailabs.navx.frc.AHRS;
 
@@ -14,6 +15,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.cscore.HttpCamera.HttpCameraKind;
 import edu.wpi.first.wpilibj.PowerDistribution;
 
 import frc.DataLogger.CatzLog;
@@ -27,7 +29,12 @@ import frc.Mechanisms.CatzRGB;
 import frc.Mechanisms.ColorMethod;
 import frc.Autonomous.*;
 
-
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.util.datalog.BooleanLogEntry;
+import edu.wpi.first.util.datalog.DataLog;
+import edu.wpi.first.util.datalog.DoubleLogEntry;
+import edu.wpi.first.util.datalog.StringLogEntry;
 
 
 /**
@@ -41,7 +48,7 @@ public class Robot extends TimedRobot
   //---------------------------------------------------------------------------------------------
   //  Shared Libraries & Utilities
   //---------------------------------------------------------------------------------------------
-  public static CatzConstants       constants;
+  public static CatzConstants       constants = new CatzConstants();
 
   public static DataCollection      dataCollection;
   public ArrayList<CatzLog>         dataArrayList;
@@ -66,7 +73,6 @@ public class Robot extends TimedRobot
   public static final int DPAD_LT = 270;
   public static final int DPAD_RT = 90;
 
-  public double  xboxGamePieceSelection = 0.0;
   public double  xboxElevatorManualPwr    = 0.1;
   public boolean xboxElevatorManualMode = false;
   public boolean xboxStowPos   = false;
@@ -110,12 +116,13 @@ public class Robot extends TimedRobot
   public static final int MODE_MANUAL_HOLD = 1;
   public static final int MODE_MANUAL      = 2;
     
+
   
   //---------------------------------------------------------------------------------------------
   //  Autonomous
   //---------------------------------------------------------------------------------------------
   public static CatzAutonomous      auton;
-  public static CatzAutonomousPaths paths;
+  public static CatzAutonomousPaths paths = new CatzAutonomousPaths();
   public static CatzBalance         balance;
 
   private final double OFFSET_DELAY = 0.5;    //TBD put into AUTO BALANCE class
@@ -129,62 +136,8 @@ public class Robot extends TimedRobot
   public static CatzIntake     intake;
   public static CatzRGB        led = new CatzRGB();
 
-
-  /*-----------------------------------------------------------------------------------------
-  *  
-  *  robotXxx
-  *
-  *----------------------------------------------------------------------------------------*/
-  /**
-   * This function is run when the robot is first started up and should be used for any
-   * initialization code.
-   */
-  @Override
-  public void robotInit() 
-  {
-    //-----------------------------------------------------------------------------------------
-    //  Shared Libraries & Utilities
-    //-----------------------------------------------------------------------------------------
-    constants      = new CatzConstants();
-
-    dataCollection = new DataCollection();
-    dataArrayList  = new ArrayList<CatzLog>();
-    
-    dataCollection.dataCollectionInit(dataArrayList);
-
-
-    //-----------------------------------------------------------------------------------------
-    //  Shared Robot Components (e.g. not mechanism specific)
-    //-----------------------------------------------------------------------------------------
-    PDH = new PowerDistribution();
-
-    navX = new AHRS();
-    navX.reset();
-
-    xboxDrv = new XboxController(XBOX_DRV_PORT);
-    xboxAux = new XboxController(XBOX_AUX_PORT);
-
-    currentTime = new Timer();
-
-    //----------------------------------------------------------------------------------------------
-    //  Autonomous
-    //----------------------------------------------------------------------------------------------
-    auton   = new CatzAutonomous();
-    paths   = new CatzAutonomousPaths();
-    balance = new CatzBalance();
-
-    //----------------------------------------------------------------------------------------------
-    //  Mechanisms
-    //----------------------------------------------------------------------------------------------
-    drivetrain = new CatzDrivetrain();
-    elevator   = new CatzElevator();
-    arm        = new CatzArm();
-    intake     = new CatzIntake();
-
-  }
-
-  public enum mechMode
-  {
+  //---------------------------------------------------------------------------------------------
+  public enum mechMode{
     AutoMode(Color.kGreen),
     ManualHoldMode(Color.kCyan),
     ManualMode(Color.kRed);
@@ -228,6 +181,65 @@ public class Robot extends TimedRobot
   public static gameModeLED currentGameModeLED = gameModeLED.MatchEnd;
   public static gamePiece currentGamePiece = gamePiece.None;
 
+
+  BooleanLogEntry myBooleanLog;
+  DoubleLogEntry myDoubleLog;
+  StringLogEntry myStringLog;
+
+  DataLog log;
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  robotXxx
+  *
+  *----------------------------------------------------------------------------------------*/
+
+  /**
+   * This function is run when the robot is first started up and should be used for any
+   * initialization code.
+   */
+  @Override
+  public void robotInit() 
+  {
+    log = DataLogManager.getLog();
+    //-----------------------------------------------------------------------------------------
+    //  Shared Libraries & Utilities
+    //-----------------------------------------------------------------------------------------
+    dataCollection = new DataCollection();
+    dataArrayList  = new ArrayList<CatzLog>();
+    
+    dataCollection.dataCollectionInit(dataArrayList);
+
+
+    //-----------------------------------------------------------------------------------------
+    //  Shared Robot Components (e.g. not mechanism specific)
+    //-----------------------------------------------------------------------------------------
+    PDH = new PowerDistribution();
+
+    navX = new AHRS();
+    navX.reset();
+
+    xboxDrv = new XboxController(XBOX_DRV_PORT);
+    xboxAux = new XboxController(XBOX_AUX_PORT);
+
+    currentTime = new Timer();
+
+    //----------------------------------------------------------------------------------------------
+    //  Autonomous
+    //----------------------------------------------------------------------------------------------
+    auton   = new CatzAutonomous();
+    balance = new CatzBalance();
+
+    //----------------------------------------------------------------------------------------------
+    //  Mechanisms
+    //----------------------------------------------------------------------------------------------
+    drivetrain = new CatzDrivetrain();
+    elevator   = new CatzElevator();
+    arm        = new CatzArm();
+    intake     = new CatzIntake();
+
+    System.out.println("Deploy robot code"); 
+  }
+
   /**
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
    * that you want ran during disabled, autonomous, teleoperated and test.
@@ -253,11 +265,12 @@ public class Robot extends TimedRobot
     SmartDashboard.putNumber("gamepiece int", selectedGamePiece);
     SmartDashboard.putNumber("COMMAND STATE", commandedStateUpdate);
 
+
     drivetrain.smartDashboardDriveTrain();
-    drivetrain.smartDashboardDriveTrain_DEBUG();
+    //drivetrain.smartDashboardDriveTrain_DEBUG();
     elevator.smartDashboardElevator();
     elevator.smartDashboardElevator_DEBUG();
-    balance.SmartDashboardBalanceDebug();
+    //balance.SmartDashboardBalanceDebug();
 
         
     arm.smartDashboardARM();
@@ -265,9 +278,7 @@ public class Robot extends TimedRobot
   
     //debug should be commented out for comp
 
-        intake.smartdashboardIntakeDebug();
-       balance.SmartDashboardBalanceDebug();
-       
+    //intake.smartdashboardIntakeDebug();      
   }
 
 
@@ -294,12 +305,12 @@ public class Robot extends TimedRobot
     currentTime.reset();
     currentTime.start();
 
+    currentGameModeLED = gameModeLED.InAutonomous;
+
     navX.reset();
 
     navX.setAngleAdjustment(-navX.getYaw() + 180.0); //set navx's zero position to opposite way robot is facing
     
-    currentGameModeLED = gameModeLED.InAutonomous;
-
     Timer.delay(OFFSET_DELAY);  //TBD - This should be 
 
     paths.executeSelectedPath();
@@ -323,6 +334,14 @@ public class Robot extends TimedRobot
   @Override
   public void teleopInit()
   {
+    // Starts recording to data log
+    DataLogManager.start();
+
+    myBooleanLog = new BooleanLogEntry(log, "/my/boolean");
+    myDoubleLog = new DoubleLogEntry(log, "/my/double");
+    myStringLog = new StringLogEntry(log, "/my/string");
+
+
     intake.resetPID();
     intake.enablePID(false);
     currentTime.reset();
@@ -330,6 +349,7 @@ public class Robot extends TimedRobot
 
     dataCollection.startDataCollection();
     balance.StopBalancing();
+
     currentGameModeLED = gameModeLED.TeleOp;
   }
 
@@ -338,15 +358,12 @@ public class Robot extends TimedRobot
   @Override
   public void teleopPeriodic()
   {
+    drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
 
-    drivetrain.cmdProcSwerve(0.0, xboxDrv.getLeftY()/2, xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis()); //TBD x needs to be 0.0
-    //drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
-
-    // if(xboxDrv.getStartButtonPressed())
-    // {
-    //   zeroGyro();
-    // }
-
+    if(xboxDrv.getStartButtonPressed())
+    {
+      zeroGyro();
+    }
 
 
     xboxHighNode           = xboxAux.getYButton();
@@ -357,27 +374,20 @@ public class Robot extends TimedRobot
 
     xboxElevatorManualMode = xboxAux.getRightStickButton();
     xboxElevatorManualPwr  = xboxAux.getRightY();
-    boolean xboxIntakeRollerPwr = true;
 
-    //Bumper overiding flinging
-    if(xboxAux.getPOV() != DPAD_UP)
-    {
-      xboxIntakeRollerPwr = xboxAux.getLeftBumper();
-    }
 
  
-    // xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
-    //                        xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
+    xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
+                           xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
 
-    // determineCommandState(xboxGamePieceSelection, xboxLowNode, 
-    //                                               xboxMidNode, 
-    //                                               xboxHighNode, 
-    //                                               xboxStowPos,
-    //                                               xboxPickUpGroundPos,
-    //                                               xboxAux.getPOV() == DPAD_DN,
-    //                                               false);
+    determineCommandState(xboxLowNode, xboxMidNode, 
+                                       xboxHighNode, 
+                                       xboxStowPos,
+                                       xboxPickUpGroundPos,
+                                       xboxAux.getPOV() == DPAD_DN,
+                                       false);
   
-                                                   
+                                                  
     elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
                             xboxElevatorManualMode,  // Enter Manual Mode
                             commandedStateUpdate);
@@ -387,40 +397,42 @@ public class Robot extends TimedRobot
     arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
                    xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 
                    commandedStateUpdate); 
-                   
 
     intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
-                          xboxAux.getRightBumper(),             //Roller in 
-                          xboxIntakeRollerPwr,              //Roller out
+                          xboxAux.getRightBumper() | xboxDrv.getRightBumper(),             //Roller in 
+                          xboxAux.getLeftBumper() | xboxDrv.getLeftBumper(),              //Roller out
                           xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
                           (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
                           commandedStateUpdate,
                           selectedGamePiece);
-
-
                          
-    // commandedStateUpdate = COMMAND_STATE_NULL;
+    commandedStateUpdate = COMMAND_STATE_NULL;
 
 
 
     
-    // // Lock Wheels (Balancing)
-    // if(xboxDrv.getBButton())
-    // {
-    //   drivetrain.lockWheels();
-    // }
+    // Lock Wheels (Balancing)
+    if(xboxDrv.getBButton())
+    {
+      drivetrain.lockWheels();
+    }
 
-    // /*
-    // if(DriverStation.getMatchTime() < 2.0)
-    // {
-    //   led.matchDone = true;
+    /*
+    if(DriverStation.getMatchTime() < 2.0)
+    {
+      led.matchDone = true;
 
-    // }
-    // else if(DriverStation.getMatchTime() < 15.0)
-    // {
-    //   led.endGame = true;
-    // }
-    // */
+    }
+    else if(DriverStation.getMatchTime() < 15.0)
+    {
+      led.endGame = true;
+    }
+    */
+
+    SmartDashboard.putNumber("elv enc", elevator.getElevatorEncoder());
+    myBooleanLog.append(true);
+    myDoubleLog.append(elevator.getElevatorEncoder());
+    myStringLog.append("wow!");
   }
 
 
@@ -434,8 +446,10 @@ public class Robot extends TimedRobot
   @Override
   public void disabledInit()
   {
+    System.out.println( "intake temp " + intake.intakeWristTemp());
+ 
+    currentGameModeLED = gameModeLED.MatchEnd;
 
-   System.out.println( "intake temp " + intake.intakeWristTemp());
     currentTime.stop();
     
     if(dataCollection.logDataValues == true)
@@ -468,9 +482,7 @@ public class Robot extends TimedRobot
   *----------------------------------------------------------------------------------------*/
   /** This function is called once when test mode is enabled. */
   @Override
-  public void testInit() {
-    drivetrain.setWheelOffsets(drivetrain.getOffsetAverages());
-  }
+  public void testInit() {}
 
   /** This function is called periodically during test mode. */
   @Override
@@ -496,8 +508,7 @@ public class Robot extends TimedRobot
   *  Misc
   *
   *----------------------------------------------------------------------------------------*/  
-  public void determineCommandState(double  xboxGamePieceSelection,
-                                    boolean LowNode,
+  public void determineCommandState(boolean LowNode,
                                     boolean MidNode,
                                     boolean HighNode,
                                     boolean StowPos,

@@ -50,12 +50,12 @@ public class DataCollection
 
     public boolean validLogID = true;
 
-    private final String LOG_HDR_SWERVE_STEERING = "time,target,lf-angle,lf-err,lf-strpwr,lb-angle,lb-err,lb-str-pwr,rf-angle,rf-err,rf-strpwr,rb-angle,rb-err,rb-strpwr";
+    private final String LOG_HDR_SWERVE_STEERING = "time,target,lf-angle,lf-err,lf-flip-err,lb-angle,lb-err,lb-flip-err,rf-angle,rf-err,rf-flip-err,rb-angle,rb-err,rb-flip-err";
     private final String LOG_HDR_SWERVE_DRIVING = "time,target,lf-angle,lf-dist,lf-vel,lb-angle,lb-dist,lb-vel,rf-angle,rf-dist,rf-vel,rb-angle,rb-dist,rb-vel,lf-error,LEFTBACKPWR";
     private final String LOG_HDR_ARM = "time,position,mtroutput";
-    private final String LOG_HDR_INTAKE = "time,tar-pos,curr-pos,tar-pwr,pid-pwr,ff-pwr,mtr-out,mtr-str-cur,mtr-sup-curr";
+    private final String LOG_HDR_INTAKE = "time,tar-pos,curr-pos,tar-pwr,pid-pwr,ff-pwr,mtr-outp";
     private final String LOG_HDR_ELEVATOR = "time,position,mtroutput";
-    private final String LOG_HDR_DRV_STRAIGHT = "time,lf-angle,lb-angle,rf-angle,rb-angle,lf-power,lb-power,rf-power,rb-power";
+    private final String LOG_HDR_DRV_STRAIGHT = "time, delta-pos-cn,dis-rem-in,drv-pwr-kp,drv-pwr-clmp,drv-pwr,curr-angl,angl-err,angl-err-rate,turn-pwr-kp,turn-pwr-kd,turn-pwr,lf-mod-angl";
     private final String LOG_HDR_TURN_IN_PLACE = "time, cur-angle, cur-err, mtr-pwr";
     private final String LOG_HDR_BALANCE_MOD = "time,pitch,rate,power,pitchTerm,rateTerm,";
 

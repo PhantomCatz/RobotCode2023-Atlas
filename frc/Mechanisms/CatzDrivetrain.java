@@ -1,6 +1,5 @@
 package frc.Mechanisms;
 
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
@@ -28,10 +27,10 @@ public class CatzDrivetrain
     private final int RT_BACK_ENC_PORT = 7;
     private final int RT_FRNT_ENC_PORT = 8;
 
-    private final double LT_FRNT_OFFSET =  0.0100; //0.073 //-0.0013; //MC ID 2
-    private final double LT_BACK_OFFSET =  0.0439; //0.0431 //0.0498; //MC ID 4
-    private final double RT_BACK_OFFSET =  0.2588; //0.2420 //0.2533; //MC ID 6
-    private final double RT_FRNT_OFFSET =  0.0280; //0.0238 //0.0222; //MC ID 8
+    private final double LT_FRNT_OFFSET =  0.0168; //-0.0013; //MC ID 2
+    private final double LT_BACK_OFFSET =  0.0432; //0.0498; //MC ID 4
+    private final double RT_BACK_OFFSET =  0.2533; //0.2533; //MC ID 6
+    private final double RT_FRNT_OFFSET =  0.0226; //0.0222; //MC ID 8
 
     private final double NOT_FIELD_RELATIVE = 0.0;
 
@@ -72,8 +71,10 @@ public class CatzDrivetrain
         gyroAngle  = navXAngle;
 
         
+        //System.out.println(pwrMode);
         if(pwrMode > 0.9)
         {
+           //System.out.println("---------");
             modifyDrvPwr = true;
         }
         else
@@ -86,12 +87,18 @@ public class CatzDrivetrain
             
             if(modifyDrvPwr == true)
             {
-                drivePower = drivePower * 0.3;
+                drivePower = drivePower * 0.5;
+                //System.out.println("MOD DRV");
             }
             
 
             if(Math.abs(turnPower) >= 0.1)
             {
+                if(modifyDrvPwr == true)
+                {
+                    turnPower = turnPower * 0.5;
+                    //System.out.println("MOD DRV");
+                }
                 translateTurn(steerAngle, drivePower, turnPower, gyroAngle);
                 }
                else
@@ -103,6 +110,12 @@ public class CatzDrivetrain
         }
         else if(Math.abs(turnPower) >= 0.1)
         {
+            if(modifyDrvPwr == true)
+            {
+                turnPower = turnPower * 0.5;
+                //System.out.println("MOD DRV");
+            }
+            
             rotateInPlace(turnPower);
             
             dataCollection();
@@ -219,10 +232,10 @@ public class CatzDrivetrain
         if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_SWERVE_STEERING)
         {
             data = new CatzLog(Robot.currentTime.get(), dataJoystickAngle,
-                            LT_FRNT_MODULE.getAngle(), LT_FRNT_MODULE.getError(), LT_FRNT_MODULE.getStrPwr(),
-                            LT_BACK_MODULE.getAngle(), LT_BACK_MODULE.getError(), LT_BACK_MODULE.getStrPwr(),
-                            RT_FRNT_MODULE.getAngle(), RT_FRNT_MODULE.getError(), RT_FRNT_MODULE.getStrPwr(),
-                            RT_BACK_MODULE.getAngle(), RT_BACK_MODULE.getError(), RT_BACK_MODULE.getStrPwr(), front, DataCollection.boolData);  
+                            LT_FRNT_MODULE.getAngle(), LT_FRNT_MODULE.getError(), LT_FRNT_MODULE.getFlipError(),
+                            LT_BACK_MODULE.getAngle(), LT_BACK_MODULE.getError(), LT_BACK_MODULE.getFlipError(),
+                            RT_FRNT_MODULE.getAngle(), RT_FRNT_MODULE.getError(), RT_FRNT_MODULE.getFlipError(),
+                            RT_BACK_MODULE.getAngle(), RT_BACK_MODULE.getError(), RT_BACK_MODULE.getFlipError(), front, DataCollection.boolData);  
             Robot.dataCollection.logData.add(data);
         }
         else if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_SWERVE_DRIVING)
@@ -233,10 +246,6 @@ public class CatzDrivetrain
                             RT_FRNT_MODULE.getAngle(), RT_FRNT_MODULE.getDrvDistanceRaw(), RT_FRNT_MODULE.getDrvVelocity(),
                             RT_BACK_MODULE.getAngle(), RT_BACK_MODULE.getDrvDistanceRaw(), RT_BACK_MODULE.getDrvVelocity(), LT_FRNT_MODULE.getError(), DataCollection.boolData);  
             Robot.dataCollection.logData.add(data);
-        }
-        else if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_DRV_STRAIGHT)
-        {
-           // data = new CatzLog(Robot.currentTime.get(), LT_FRNT_MODULE.getWheelAngle(),LT_BACK_MODULE.getWheelAngle(),RT_FRNT_MODULE.getWheelAngle(),RT_BACK_MODULE.getWheelAngle(),)
         }
     }
 
@@ -301,47 +310,6 @@ public class CatzDrivetrain
         return Robot.navX.getAngle();
     }
 
-    public double[] getOffsetAverages()
-    {
-        System.out.println("Calculation starting..");
-        double[] offsetAverages = new double[4];
-        for(int i = 0; i < 100; i++)
-        {
-            offsetAverages[0] += LT_FRNT_MODULE.getAngle();
-            offsetAverages[1] += LT_BACK_MODULE.getAngle();
-            offsetAverages[2] += RT_FRNT_MODULE.getAngle();
-            offsetAverages[3] += RT_BACK_MODULE.getAngle();
-            Timer.delay(0.001);
-        }
-
-        for(int i = 0; i < offsetAverages.length; i++)
-        {
-            offsetAverages[i] /= 100.0;
-        }
-
-        System.out.println("Done calculating");
-
-        System.out.println("LT_FRNT: " + offsetAverages[0]);
-        System.out.println("LT_BACK: " + offsetAverages[1]);
-        System.out.println("RT_FRNT: " + offsetAverages[2]);
-        System.out.println("RT_BACK: " + offsetAverages[3]);
-
-        return offsetAverages;
-    }
-
-    /**
-     * 
-     * The offsets must be in the order LT_FRNT, LT_BACK, RT_FRNT, RT_BACK
-     * 
-     */
-    public void setWheelOffsets(double[] offsets)
-    {
-        LT_FRNT_MODULE.setOffset(offsets[0]);
-        LT_BACK_MODULE.setOffset(offsets[1]);
-        RT_FRNT_MODULE.setOffset(offsets[2]);
-        RT_BACK_MODULE.setOffset(offsets[3]);
-    }
-
     public void autoDrive(double power)
     {
         LT_FRNT_MODULE.setWheelAngle(0, 0);
@@ -350,8 +318,6 @@ public class CatzDrivetrain
         RT_BACK_MODULE.setWheelAngle(0, 0);
 
         setDrivePower(power);
-
-        dataCollection();
     }
 
 

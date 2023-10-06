@@ -36,7 +36,7 @@ public class CatzSwerveModule
     private double command;
     public boolean driveDirectionFlipped = false;
 
-    private double WHEEL_OFFSET;
+    private final double WHEEL_OFFSET;
 
     public static final SendableChooser<Boolean> chosenState = new SendableChooser<>();
 
@@ -89,12 +89,6 @@ public class CatzSwerveModule
         //DRIVE_MOTOR.setNeutralMode(NeutralMode.Brake); //REMOVE AFTER TESTING
 
     }
-
-    public void setOffset(double offset)
-    {
-        WHEEL_OFFSET = offset;
-    }
-
     public void setCoastMode()
     {
         STEER_MOTOR.setIdleMode(IdleMode.kCoast);
@@ -205,16 +199,6 @@ public class CatzSwerveModule
     public double getAngle()
     {
         return magEnc.get();//currentAngle
-    }
-
-    public double getWheelAngle()
-    {
-        return (magEnc.get() - WHEEL_OFFSET) * 360.0;
-    }
-
-    public double getStrPwr()
-    {
-        return STEER_MOTOR.getAppliedOutput();
     }
 
     public double getError()
