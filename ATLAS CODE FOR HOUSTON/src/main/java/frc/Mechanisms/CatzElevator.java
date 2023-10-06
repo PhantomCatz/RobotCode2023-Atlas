@@ -1,6 +1,7 @@
 package frc.Mechanisms;
 
 import frc.robot.Robot;
+import frc.robot.Robot.mechMode;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.DemandType;
@@ -154,7 +155,7 @@ public class CatzElevator
         elevatorMtr.config_kI(0, ELEVATOR_KI_HIGH);
         elevatorMtr.config_kD(0, ELEVATOR_KD_HIGH);
 
-
+        elevatorMtr.configOpenloopRamp(2.0);
  
         elevatorMtr.config_IntegralZone(0, 2000.0);//TBD should go away once feet foward
 
@@ -163,6 +164,7 @@ public class CatzElevator
         elevatorMtr.configAllowableClosedloopError(0, CLOSELOOP_ERROR_THRESHOLD_HIGH_MID);//make this constant and make values in inches
         
         elevatorMtr.set(ControlMode.PercentOutput, MANUAL_CONTROL_PWR_OFF);
+
 
         elevatorTime = new Timer();
         elevatorTime.reset();
@@ -227,6 +229,7 @@ public class CatzElevator
 
         if(cmdUpdateState != Robot.COMMAND_STATE_NULL)
         {
+           Robot.elevatorControlMode = mechMode.AutoMode;
            elevatorInManual = false;
            elevatorMovementMode = Robot.MODE_AUTO;
         }
@@ -242,11 +245,13 @@ public class CatzElevator
             if(elevatorInManual) // Full manual
             {
                 elevatorMovementMode = Robot.MODE_MANUAL;
+                Robot.elevatorControlMode = mechMode.ManualMode;
 
                 elevatorManual(elevatorPwr);
             }
             else // Hold Position
             {
+                Robot.elevatorControlMode = mechMode.ManualHoldMode;
                 elevatorMovementMode = Robot.MODE_MANUAL_HOLD;
 
                 targetPositionEnc = elevatorMtr.getSelectedSensorPosition();

@@ -44,6 +44,9 @@ public class CatzAutonomousPaths
     private final int RIGHT_SCORE_2                       = 41;
     private final int RIGHT_SCORE_1_BALANCE               = 42;
 
+    private final int RIGHT_SCORE_3                       = 50;
+    private final int LEFT_SCORE_3                        = 51;
+
     private final int TEST                            = 100;
 
 
@@ -99,6 +102,9 @@ public class CatzAutonomousPaths
         chosenPath.addOption       ("Right Score 2",          RIGHT_SCORE_2);
         chosenPath.addOption       ("Right Score 1 Balance",  RIGHT_SCORE_1_BALANCE);
 
+        chosenPath.addOption       ("Right Score 3",          RIGHT_SCORE_3);
+        chosenPath.addOption       ("Left Score 3",           LEFT_SCORE_3);
+
         chosenPath.addOption       ("TEST PATH",  TEST);
 
         SmartDashboard.putData     ("Auton Path", chosenPath);
@@ -141,6 +147,9 @@ public class CatzAutonomousPaths
             case RIGHT_SCORE_1_BALANCE: RightScore1Balance(); //Scores High Cone - TBD
             break;
 
+            case RIGHT_SCORE_3: RightScore3(); //scoring 3 mid cone 2 low cube
+            break;
+
             case TEST: testPath(); //Scores High Cone - TBD
             break;
         }
@@ -150,7 +159,9 @@ public class CatzAutonomousPaths
 
     public void testPath()
     {
-        Robot.auton.DriveStraight(-100,FWD_OR_BWD,3.0);
+        Robot.auton.TurnInPlace(-180 , 2.0); 
+        Robot.auton.DriveStraight(-20, FWD_OR_BWD, 2.0);
+
     }
 
 
@@ -178,21 +189,37 @@ public class CatzAutonomousPaths
         Robot.auton.DriveStraight(200, FWD_OR_BWD,  4.0);     //From Grid to exit community
     }
 
-    public void sideScore1Pickup1()
+    public void sideScore1Pickup1LftSide()
     {
         scoreConeHigh();
 
-        Robot.auton.DriveStraight( 30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
+        Robot.auton.DriveStraight(30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
 
-        Robot.auton.TurnInPlace(180, 2.0);
+        Robot.auton.TurnInPlace(190, 2.0);
 
         pickUpCube();
         
-        Robot.auton.DriveStraight(176, FWD_OR_BWD, 5.0);  
-        Timer.delay(0.1); 
+        Robot.auton.DriveStraight(196, FWD_OR_BWD, 5.0);  //191
+        Timer.delay(0.4); 
         stow();
 
-        Robot.auton.TurnInPlace(180, 2.0);
+        Robot.auton.TurnInPlace(170 , 2.0);
+    }
+
+    public void sideScore1Pickup1RTSide()
+    {
+        scoreConeMid();
+
+        Robot.auton.DriveStraight(30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
+
+        Robot.auton.TurnInPlace(-185, 2.0);
+
+        pickUpCube();
+        
+        Robot.auton.DriveStraight(196, FWD_OR_BWD, 5.0);  //191
+        stow();
+
+        Robot.auton.TurnInPlace(-175 , 2.0); 
     }
 
 
@@ -210,13 +237,18 @@ public class CatzAutonomousPaths
             direction = LEFT;
         }
 
-        sideScore1Pickup1();
-        Robot.auton.DriveStraight(-220, FWD_OR_BWD, 5.0);
+        sideScore1Pickup1LftSide();
+        Robot.auton.DriveStraight(-205, FWD_OR_BWD, 5.0);
 
-        Robot.auton.DriveStraight( 40,  direction, 2.0);    //Move in front of center node
-        // Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
+        Robot.auton.DriveStraight(40,  direction, 2.0);    //Move in front of center node
 
         scoreCubeHigh();
+        Timer.delay(0.1);
+        stow();
+
+        Robot.auton.DriveStraight(-40,  direction, 2.0); 
+
+        Robot.auton.DriveStraight(200, FWD_OR_BWD, 5.0);
     }
 
         
@@ -233,13 +265,47 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        sideScore1Pickup1();
+        sideScore1Pickup1RTSide();
         Robot.auton.DriveStraight(-200, FWD_OR_BWD, 5.0);
 
         Robot.auton.DriveStraight( 48,  direction, 2.0);    //Move in front of center node
         Robot.auton.DriveStraight(-25, FWD_OR_BWD, 2.0);    //Move up to center node
 
         scoreCubeHigh();
+    }
+
+    public void RightScore3()
+    {
+
+        double direction;
+
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
+        {
+            direction = LEFT;
+        }
+        else
+        {
+            direction = RIGHT;
+        }
+
+        sideScore1Pickup1RTSide();
+        
+        Robot.auton.DriveStraight(-90, FWD_OR_BWD, 3.0);
+
+        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CUBE); //fling cube
+        Timer.delay(0.2); 
+        stow();
+
+        Robot.auton.DriveStraight(110, FWD_OR_BWD, 3.0);
+
+        pickUpCube();                                       
+        Robot.auton.DriveStraight(80,  direction, 2.0);    //Move in behind cube
+        stow();
+        Timer.delay(0.2);
+        Robot.auton.DriveStraight(-100, FWD_OR_BWD, 3.0);
+        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
+
+    
     }
 
     public void LeftScore1Balance()
@@ -255,10 +321,10 @@ public class CatzAutonomousPaths
             direction = LEFT;
         }
 
-        sideScore1Pickup1();
+        sideScore1Pickup1LftSide();
 
         Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
-        Robot.auton.DriveStraight(60, direction, 2.0);
+        Robot.auton.DriveStraight(80, direction, 2.0); //prev 70
         Robot.auton.DriveStraight(-80, FWD_OR_BWD, 2.0);
         Balance();
     }
@@ -277,10 +343,10 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        sideScore1Pickup1();
+        sideScore1Pickup1LftSide();
 
         Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
-        Robot.auton.DriveStraight(48, direction, 2.0);
+        Robot.auton.DriveStraight(80, direction, 2.0); //prev 70
         Robot.auton.DriveStraight(-80, FWD_OR_BWD, 2.0);
         Balance();
 
@@ -326,13 +392,14 @@ public class CatzAutonomousPaths
     public void scoreConeMid()
     {
         setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CONE);
-        Timer.delay(0.5);
+        Timer.delay(0.4);
         scoreCone();
     }
 
     public void scoreConeHigh()
     {
         setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_HIGH_CONE, Robot.GP_CONE);
+        Timer.delay(0.4);
         scoreCone();
     }
 
@@ -372,6 +439,11 @@ public class CatzAutonomousPaths
         Robot.intake.rollersOff();
     }
 
+    public void setScorePosCube()
+    {
+        setCommandStateAuton(Robot.COMMAND_UPDATE_SCORE_LOW_CUBE, Robot.GP_CUBE);
+    }
+
     public void ejectCube()
     {
         Robot.intake.rollersOutCube();
@@ -384,8 +456,6 @@ public class CatzAutonomousPaths
         Timer.delay(0.2);
         
     }
-
-
 
     public void setCommandStateAuton(int cmdState, int gamePiece)
     {
@@ -410,13 +480,62 @@ public class CatzAutonomousPaths
                 }
 
                 timeout++;
-                if(timeout >= 200)
+                if(timeout >= 80)//prev 200
                 {
                     done = true;
                 }
 
                 Timer.delay(0.010);
             }
+        }
+    }
+
+    
+    public void setCommandStateAutonFast(int cmdState, int gamePiece)
+    {
+        int timeout = 0;
+        boolean done = false;
+
+        Robot.selectedGamePiece = gamePiece;
+
+        Robot.elevator.cmdProcElevator(0.0,   false, cmdState);
+        Robot.arm.cmdProcArm          (false, false, cmdState);
+        Robot.intake.cmdProcIntake    (0.0, false, false, false, false, cmdState, gamePiece);
+    }
+
+    public void setCommandStateAutonIntakeDelay(int cmdState, int gamePiece)
+    {
+        int timeout = 0;
+        boolean done = false;
+
+        Robot.selectedGamePiece = gamePiece;
+
+        Robot.elevator.cmdProcElevator(0.0,   false, Robot.COMMAND_UPDATE_SCORE_MID_CONE);
+        Robot.arm.cmdProcArm          (false, false, Robot.COMMAND_UPDATE_SCORE_HIGH_CONE);
+
+        if(cmdState != Robot.COMMAND_UPDATE_STOW)
+        {
+            Timer.delay(0.5);
+            Robot.intake.cmdProcIntake    (0.0, false, false, false, false, Robot.COMMAND_UPDATE_SCORE_HIGH_CONE, gamePiece);
+            ejectCube();
+
+        }
+    }
+
+    public void setCommandStateAutonIntake(int cmdState, int gamePiece)
+    {
+
+        Robot.selectedGamePiece = gamePiece;
+
+        Robot.elevator.cmdProcElevator(0.0,   false, Robot.COMMAND_UPDATE_SCORE_MID_CONE);
+        Robot.arm.cmdProcArm          (false, false, Robot.COMMAND_UPDATE_SCORE_HIGH_CONE);
+
+        if(cmdState != Robot.COMMAND_UPDATE_STOW)
+        {
+            Timer.delay(0.5);
+            Robot.intake.cmdProcIntake    (0.0, false, false, false, false, Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE, gamePiece);
+            ejectCube();
+
         }
     }
 
@@ -428,13 +547,15 @@ public class CatzAutonomousPaths
 
     public void pickUpCube()
     {
-        setCommandStateAuton(Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE, Robot.GP_CUBE);
+        setCommandStateAutonFast(Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE, Robot.GP_CUBE);
         Robot.intake.rollersInCube();
     }
 
     public void stow()
     {
         Robot.intake.rollersOff();
-        setCommandStateAuton(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
+        setCommandStateAutonFast(Robot.COMMAND_UPDATE_STOW, Robot.GP_NULL);
     }
+
+
 }

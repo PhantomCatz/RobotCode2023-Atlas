@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
 import frc.robot.*;
+import frc.robot.Robot.mechMode;
 
 public class CatzArm
 {
@@ -114,6 +115,8 @@ public class CatzArm
 
         armMtr.set(ControlMode.PercentOutput, MANUAL_CONTROL_PWR_OFF);
 
+        armMtr.configOpenloopRamp(1.0);
+
         startArmThread();
 
     }
@@ -127,7 +130,10 @@ public class CatzArm
     public void cmdProcArm(boolean armExtend, boolean armRetract,
                             int cmdUpdateState)
     {
-        
+       
+    if(cmdUpdateState != Robot.COMMAND_STATE_NULL)
+    {
+        Robot.armControlMode = Robot.mechMode.AutoMode;
         switch(cmdUpdateState)
         {
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE :    
@@ -149,7 +155,6 @@ public class CatzArm
                 highExtendProcess = true;
                 armMovementMode   = Robot.MODE_AUTO;
                 armInPosition = false;
-                System.out.println("A-Case-Hi");
                 targetPosition = POS_ENC_CNTS_EXTEND;
             break;
 
@@ -164,10 +169,12 @@ public class CatzArm
                 targetPosition = POS_ENC_CNTS_RETRACT;
             break;
         }
+    }
 
         if(armExtend == true)
         {
             armMovementMode = Robot.MODE_MANUAL;
+            Robot.armControlMode = mechMode.ManualMode;
 
             setArmPwr(EXTEND_PWR);
 
@@ -178,6 +185,7 @@ public class CatzArm
         else if(armRetract == true)
         {
             armMovementMode = Robot.MODE_MANUAL;
+            Robot.armControlMode = mechMode.ManualMode;
 
             setArmPwr(RETRACT_PWR);
           
@@ -206,16 +214,14 @@ public class CatzArm
             {
                 if(highExtendProcess == true)
                 {
-                    System.out.println(highExtendProcess);
                     elevatorPosition = Robot.elevator.getElevatorEncoder();
 
                     if(DriverStation.isAutonomousEnabled() && Robot.selectedGamePiece == Robot.GP_CONE)
                     {
-                        System.out.println("in s");
+
                         if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR && 
                            Robot.intake.isIntakeInPos())
                         {
-                            System.out.println("A-arm extend cmd");
                             armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
                             highExtendProcess = false;
                         }
@@ -224,7 +230,6 @@ public class CatzArm
                     {
                         if(elevatorPosition >= POS_ENC_CNTS_HIGH_EXTEND_THRESHOLD_ELEVATOR)
                         {
-                            System.out.println("Tarm extend cmd");
                             armMtr.set(ControlMode.Position, POS_ENC_CNTS_EXTEND);
                             highExtendProcess = false; 
                         }
@@ -248,7 +253,7 @@ public class CatzArm
                 }
                 
 
-                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_INTAKE)) 
+                if((DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ARM)) 
                 {        
                     data = new CatzLog(Robot.currentTime.get(), targetPosition, currentPosition, 
                                                                 positionError, 

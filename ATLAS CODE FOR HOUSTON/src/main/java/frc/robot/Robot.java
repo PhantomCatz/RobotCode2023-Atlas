@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.PowerDistribution;
 
@@ -22,7 +23,8 @@ import frc.Mechanisms.CatzDrivetrain;
 import frc.Mechanisms.CatzElevator;
 import frc.Mechanisms.CatzArm;
 import frc.Mechanisms.CatzIntake;
-
+import frc.Mechanisms.CatzRGB;
+import frc.Mechanisms.ColorMethod;
 import frc.Autonomous.*;
 
 
@@ -125,6 +127,7 @@ public class Robot extends TimedRobot
   public static CatzElevator   elevator;
   public static CatzArm        arm;
   public static CatzIntake     intake;
+  public static CatzRGB        led = new CatzRGB();
 
 
   /*-----------------------------------------------------------------------------------------
@@ -178,9 +181,52 @@ public class Robot extends TimedRobot
     arm        = new CatzArm();
     intake     = new CatzIntake();
 
-
-    //led        = new CatzRGB();
   }
+
+  public enum mechMode
+  {
+    AutoMode(Color.kGreen),
+    ManualHoldMode(Color.kCyan),
+    ManualMode(Color.kRed);
+
+    public Color color;
+    mechMode(Color color){
+      this.color = color;
+    }
+  }
+
+  public enum gamePiece{
+    Cube(Color.kPurple),
+    Cone(Color.kYellow),
+    None(Color.kGhostWhite);
+
+    public Color color;
+    gamePiece(Color color){
+      this.color = color;
+    }
+  }
+
+  public enum gameModeLED{
+    Autobalancing(led.oneColorFill, Color.kGreen),
+    InAutonomous(led.startFlowing, led.PHANTOM_SAPPHIRE, Color.kWhite),
+    MatchEnd(led.startFlowingRainbow),
+    EndgameWheelLock(led.oneColorFillAllianceColor), 
+    TeleOp(led.doNothing);
+
+    public ColorMethod method;
+    public Color[] color;
+    private gameModeLED(ColorMethod method, Color... color)
+    {
+      this.method = method;
+      this.color = color;
+    }
+  }
+
+  public static mechMode intakeControlMode = mechMode.AutoMode;
+  public static mechMode elevatorControlMode = mechMode.AutoMode;
+  public static mechMode armControlMode = mechMode.AutoMode;
+  public static gameModeLED currentGameModeLED = gameModeLED.MatchEnd;
+  public static gamePiece currentGamePiece = gamePiece.None;
 
   /**
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
@@ -197,9 +243,8 @@ public class Robot extends TimedRobot
     //----------------------------------------------------------------------------------------------
     elevator.checkLimitSwitches();
     arm.checkLimitSwitches();
-    dataCollection.updateLogDataID(); //NEEDS TO BE FIXED..causes robot to crash
-
-    //led.LEDWork();
+    dataCollection.updateLogDataID(); 
+    led.LEDPeriodic();
 
     //----------------------------------------------------------------------------------------------
     //  Shuffleboard Data Display
@@ -253,6 +298,8 @@ public class Robot extends TimedRobot
 
     navX.setAngleAdjustment(-navX.getYaw() + 180.0); //set navx's zero position to opposite way robot is facing
     
+    currentGameModeLED = gameModeLED.InAutonomous;
+
     Timer.delay(OFFSET_DELAY);  //TBD - This should be 
 
     paths.executeSelectedPath();
@@ -283,6 +330,7 @@ public class Robot extends TimedRobot
 
     dataCollection.startDataCollection();
     balance.StopBalancing();
+    currentGameModeLED = gameModeLED.TeleOp;
   }
 
 
@@ -300,15 +348,22 @@ public class Robot extends TimedRobot
     // }
 
 
-    // xboxHighNode           = xboxAux.getYButton();
-    // xboxMidNode            = xboxAux.getBButton();
-    // xboxLowNode            = xboxAux.getAButton();
-    // xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
-    // xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
 
-    // xboxElevatorManualMode = xboxAux.getRightStickButton();
-    // xboxElevatorManualPwr  = xboxAux.getRightY();
+    xboxHighNode           = xboxAux.getYButton();
+    xboxMidNode            = xboxAux.getBButton();
+    xboxLowNode            = xboxAux.getAButton();
+    xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
+    xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
 
+    xboxElevatorManualMode = xboxAux.getRightStickButton();
+    xboxElevatorManualPwr  = xboxAux.getRightY();
+    boolean xboxIntakeRollerPwr = true;
+
+    //Bumper overiding flinging
+    if(xboxAux.getPOV() != DPAD_UP)
+    {
+      xboxIntakeRollerPwr = xboxAux.getLeftBumper();
+    }
 
  
     // xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
@@ -322,24 +377,27 @@ public class Robot extends TimedRobot
     //                                               xboxAux.getPOV() == DPAD_DN,
     //                                               false);
   
-                                                  
-    // elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
-    //                         xboxElevatorManualMode,  // Enter Manual Mode
-    //                         commandedStateUpdate);
+                                                   
+    elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
+                            xboxElevatorManualMode,  // Enter Manual Mode
+                            commandedStateUpdate);
                             
                             
 
-    // arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
-    //                xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 
-    //                commandedStateUpdate); 
+    arm.cmdProcArm(xboxAux.getRightTriggerAxis() >= 0.1,   //Manual Extend Arm
+                   xboxAux.getLeftTriggerAxis()  >= 0.1,   //Manual Retract Arm 
+                   commandedStateUpdate); 
+                   
 
-    // intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
-    //                       xboxAux.getRightBumper(),             //Roller in 
-    //                       xboxAux.getLeftBumper(),              //Roller out
-    //                       xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
-    //                       (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
-    //                       commandedStateUpdate,
-    //                       selectedGamePiece);
+    intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
+                          xboxAux.getRightBumper(),             //Roller in 
+                          xboxIntakeRollerPwr,              //Roller out
+                          xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
+                          (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
+                          commandedStateUpdate,
+                          selectedGamePiece);
+
+
                          
     // commandedStateUpdate = COMMAND_STATE_NULL;
 
@@ -376,6 +434,7 @@ public class Robot extends TimedRobot
   @Override
   public void disabledInit()
   {
+
    System.out.println( "intake temp " + intake.intakeWristTemp());
     currentTime.stop();
     
@@ -531,14 +590,17 @@ public class Robot extends TimedRobot
     if(Dpad == DPAD_LT)
     {
       selectedGamePiece = GP_CONE;
+      currentGamePiece = gamePiece.Cone;
     }
     else if(Dpad == DPAD_RT)
     {
       selectedGamePiece = GP_CUBE;
+      currentGamePiece = gamePiece.Cube;
     }
     else if(SelectButtonPressed)
     {
       selectedGamePiece = GP_NULL;
+      currentGamePiece = gamePiece.None;
     }
   }
 
