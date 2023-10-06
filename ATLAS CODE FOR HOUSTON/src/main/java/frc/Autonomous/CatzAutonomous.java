@@ -27,7 +27,7 @@ public class CatzAutonomous
 
     private final double DRV_S_THRESHOLD_INCH = 0.5;
     private final double DRV_S_MIN_POWER      = 0.1;
-    private final double DRV_S_MAX_POWER      = 0.7;
+    private final double DRV_S_MAX_POWER      = 1.0;//0.7
     private final double DRV_S_MAX_POWER_CHARGE_STATION = 0.5;
 
     //turn power
@@ -37,10 +37,10 @@ public class CatzAutonomous
     //turn in place variables
     private final static double PID_TURN_THRESHOLD   = 1.25;
 
-	private final static double PID_TURN_IN_PLACE_KP = 0.008;
+	private final static double PID_TURN_IN_PLACE_KP = 0.008;//0.008
     
-    private final static double TURN_DRIVE_MAX_POS_POWER  =  0.4;
-	private final static double TURN_DRIVE_MAX_NEG_POWER  = -0.4;
+    private final static double TURN_DRIVE_MAX_POS_POWER  =  1.0;//0.4
+	private final static double TURN_DRIVE_MAX_NEG_POWER  = -1.0;//-0.4
 
     private final static double TURN_DRIVE_MIN_POWER = 0.1;
 

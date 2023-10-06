@@ -147,10 +147,7 @@ public class CatzAutonomousPaths
             case RIGHT_SCORE_1_BALANCE: RightScore1Balance(); //Scores High Cone - TBD
             break;
 
-            case RIGHT_SCORE_3: TRYRightScore3(); //scoring 3
-            break;
-
-            case LEFT_SCORE_3: TRYLeftScore3();//scoring 3 left
+            case RIGHT_SCORE_3: RightScore3(); //scoring 3 mid cone 2 low cube
             break;
 
             case TEST: testPath(); //Scores High Cone - TBD
@@ -162,7 +159,8 @@ public class CatzAutonomousPaths
 
     public void testPath()
     {
-        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
+        Robot.auton.TurnInPlace(-180 , 2.0); 
+        Robot.auton.DriveStraight(-20, FWD_OR_BWD, 2.0);
     }
 
 
@@ -200,7 +198,7 @@ public class CatzAutonomousPaths
 
         pickUpCube();
         
-        Robot.auton.DriveStraight(191, FWD_OR_BWD, 5.0);  //168
+        Robot.auton.DriveStraight(196, FWD_OR_BWD, 5.0);  //191
         Timer.delay(0.4); 
         stow();
 
@@ -213,15 +211,14 @@ public class CatzAutonomousPaths
 
         Robot.auton.DriveStraight(30, FWD_OR_BWD, 2.0);     //From Grid to area to do 180 deg turn
 
-        Robot.auton.TurnInPlace(-190, 2.0);
+        Robot.auton.TurnInPlace(-185, 2.0);
 
         pickUpCube();
         
-        Robot.auton.DriveStraight(191, FWD_OR_BWD, 5.0);  //168
-        Timer.delay(0.3); 
+        Robot.auton.DriveStraight(196, FWD_OR_BWD, 5.0);  //191
         stow();
 
-        Robot.auton.TurnInPlace(-170 , 2.0); 
+        Robot.auton.TurnInPlace(-175 , 2.0); 
     }
 
 
@@ -240,7 +237,7 @@ public class CatzAutonomousPaths
         }
 
         sideScore1Pickup1LftSide();
-        Robot.auton.DriveStraight(-200, FWD_OR_BWD, 5.0);
+        Robot.auton.DriveStraight(-205, FWD_OR_BWD, 5.0);
 
         Robot.auton.DriveStraight(40,  direction, 2.0);    //Move in front of center node
 
@@ -276,7 +273,7 @@ public class CatzAutonomousPaths
         scoreCubeHigh();
     }
 
-    public void TRYRightScore3()
+    public void RightScore3()
     {
 
         double direction;
@@ -292,7 +289,7 @@ public class CatzAutonomousPaths
 
         sideScore1Pickup1RTSide();
         
-        Robot.auton.DriveStraight(-80, FWD_OR_BWD, 3.0);
+        Robot.auton.DriveStraight(-90, FWD_OR_BWD, 3.0);
 
         setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CONE, Robot.GP_CUBE); //fling cube
         Timer.delay(0.2); 
@@ -302,45 +299,12 @@ public class CatzAutonomousPaths
 
         pickUpCube();                                       
         Robot.auton.DriveStraight(80,  direction, 2.0);    //Move in behind cube
-        Timer.delay(0.4);
         stow();
         Timer.delay(0.2);
         Robot.auton.DriveStraight(-100, FWD_OR_BWD, 3.0);
         setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
 
     
-    }
-
-    public void TRYLeftScore3()
-    {
-        double direction;
-
-        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
-        {
-            direction = LEFT;
-        }
-        else
-        {
-            direction = RIGHT;
-        }
-
-        sideScore1Pickup1LftSide();
-
-        Robot.auton.DriveStraight(-80, FWD_OR_BWD, 3.0);
-
-        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_HIGH_CUBE, Robot.GP_CUBE); //fling cube
-        Timer.delay(0.1); 
-        stow();
-
-        Robot.auton.DriveStraightFast(110, FWD_OR_BWD, 2.0);
-
-        pickUpCube();                                       
-        Robot.auton.DriveStraightFast(-100,  direction, 2.0);    //Move in behind cube
-        Timer.delay(0.3);
-        stow();
-        Timer.delay(0.1);
-        Robot.auton.DriveStraight(-100,  direction, 1.0);    //Move in behind cube
-        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
     }
 
     public void LeftScore1Balance()
@@ -559,8 +523,6 @@ public class CatzAutonomousPaths
 
     public void setCommandStateAutonIntake(int cmdState, int gamePiece)
     {
-        int timeout = 0;
-        boolean done = false;
 
         Robot.selectedGamePiece = gamePiece;
 
