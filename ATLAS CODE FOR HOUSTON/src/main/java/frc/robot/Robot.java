@@ -339,13 +339,12 @@ public class Robot extends TimedRobot
   public void teleopPeriodic()
   {
 
-    drivetrain.cmdProcSwerve(0.0, xboxDrv.getLeftY()/2, xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis()); //TBD x needs to be 0.0
-    //drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
+    drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle(), xboxDrv.getRightTriggerAxis());
 
-    // if(xboxDrv.getStartButtonPressed())
-    // {
-    //   zeroGyro();
-    // }
+     if(xboxDrv.getStartButtonPressed())
+     {
+       zeroGyro();
+     }
 
 
 
