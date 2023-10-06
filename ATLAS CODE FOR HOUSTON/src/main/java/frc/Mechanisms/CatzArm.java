@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
 import frc.robot.*;
+import frc.robot.Robot.mechMode;
 
 public class CatzArm
 {
@@ -129,7 +130,10 @@ public class CatzArm
     public void cmdProcArm(boolean armExtend, boolean armRetract,
                             int cmdUpdateState)
     {
-        
+       
+    if(cmdUpdateState != Robot.COMMAND_STATE_NULL)
+    {
+        Robot.armControlMode = Robot.mechMode.AutoMode;
         switch(cmdUpdateState)
         {
             case Robot.COMMAND_UPDATE_PICKUP_GROUND_CONE :    
@@ -165,10 +169,12 @@ public class CatzArm
                 targetPosition = POS_ENC_CNTS_RETRACT;
             break;
         }
+    }
 
         if(armExtend == true)
         {
             armMovementMode = Robot.MODE_MANUAL;
+            Robot.armControlMode = mechMode.ManualMode;
 
             setArmPwr(EXTEND_PWR);
 
@@ -179,6 +185,7 @@ public class CatzArm
         else if(armRetract == true)
         {
             armMovementMode = Robot.MODE_MANUAL;
+            Robot.armControlMode = mechMode.ManualMode;
 
             setArmPwr(RETRACT_PWR);
           

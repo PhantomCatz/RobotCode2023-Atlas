@@ -245,11 +245,13 @@ public class CatzElevator
             if(elevatorInManual) // Full manual
             {
                 elevatorMovementMode = Robot.MODE_MANUAL;
+                Robot.elevatorControlMode = mechMode.ManualMode;
 
                 elevatorManual(elevatorPwr);
             }
             else // Hold Position
             {
+                Robot.elevatorControlMode = mechMode.ManualHoldMode;
                 elevatorMovementMode = Robot.MODE_MANUAL_HOLD;
 
                 targetPositionEnc = elevatorMtr.getSelectedSensorPosition();

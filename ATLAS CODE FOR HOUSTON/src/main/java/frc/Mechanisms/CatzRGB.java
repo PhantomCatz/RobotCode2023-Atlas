@@ -35,7 +35,7 @@ public class CatzRGB
     private final int LED_COUNT = 65; //54 
     private final int LED_PWM_PORT = 9;
     private final double FLOW_PERIOD = 2.0;
-    public final Color PHANTOM_SAPPHIRE = new Color(25, 84, 110); 
+    public final Color PHANTOM_SAPPHIRE = new Color(15, 25, 200); 
 
     private AddressableLED led;
     private AddressableLEDBuffer ledBuffer;

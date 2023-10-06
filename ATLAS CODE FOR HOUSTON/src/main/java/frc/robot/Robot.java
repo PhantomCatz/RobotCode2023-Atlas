@@ -244,8 +244,7 @@ public class Robot extends TimedRobot
     elevator.checkLimitSwitches();
     arm.checkLimitSwitches();
     dataCollection.updateLogDataID(); 
-
-    //led.LEDWork();
+    led.LEDPeriodic();
 
     //----------------------------------------------------------------------------------------------
     //  Shuffleboard Data Display
@@ -347,6 +346,7 @@ public class Robot extends TimedRobot
     }
 
 
+
     xboxHighNode           = xboxAux.getYButton();
     xboxMidNode            = xboxAux.getBButton();
     xboxLowNode            = xboxAux.getAButton();
@@ -355,7 +355,13 @@ public class Robot extends TimedRobot
 
     xboxElevatorManualMode = xboxAux.getRightStickButton();
     xboxElevatorManualPwr  = xboxAux.getRightY();
+    boolean xboxIntakeRollerPwr = true;
 
+    //Bumper overiding flinging
+    if(xboxAux.getPOV() != DPAD_UP)
+    {
+      xboxIntakeRollerPwr = xboxAux.getLeftBumper();
+    }
 
  
     xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
@@ -383,16 +389,12 @@ public class Robot extends TimedRobot
 
     intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
                           xboxAux.getRightBumper(),             //Roller in 
-                          xboxAux.getLeftBumper(),              //Roller out
+                          xboxIntakeRollerPwr,              //Roller out
                           xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
                           (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
                           commandedStateUpdate,
                           selectedGamePiece);
 
-    if(xboxAux.getPOV() == DPAD_UP)
-    {
-      paths.setCommandStateAutonIntakeDelay(COMMAND_UPDATE_SCORE_HIGH_CUBE, GP_CUBE);
-    }
                          
     commandedStateUpdate = COMMAND_STATE_NULL;
 
@@ -429,6 +431,7 @@ public class Robot extends TimedRobot
   @Override
   public void disabledInit()
   {
+
    System.out.println( "intake temp " + intake.intakeWristTemp());
     currentTime.stop();
     
@@ -536,8 +539,14 @@ public class Robot extends TimedRobot
     }
     else if(PickUpGroundPos)
     {
-        selectedGamePiece = GP_CUBE;
+      if(selectedGamePiece == GP_CUBE)
+      {
+        commandedStateUpdate = COMMAND_UPDATE_PICKUP_GROUND_CUBE;
+      }
+      else
+      {
         commandedStateUpdate = COMMAND_UPDATE_PICKUP_GROUND_CONE;
+      }
     }
     else if(PickUpSinglePos)
     {
@@ -576,15 +585,17 @@ public class Robot extends TimedRobot
     if(Dpad == DPAD_LT)
     {
       selectedGamePiece = GP_CONE;
+      currentGamePiece = gamePiece.Cone;
     }
     else if(Dpad == DPAD_RT)
     {
       selectedGamePiece = GP_CUBE;
-      
+      currentGamePiece = gamePiece.Cube;
     }
     else if(SelectButtonPressed)
     {
       selectedGamePiece = GP_NULL;
+      currentGamePiece = gamePiece.None;
     }
   }
 

@@ -185,6 +185,121 @@ public class CatzAutonomous
         Robot.drivetrain.translateTurn(directionDeg, 0.0, 0.0, Robot.drivetrain.getGyroAngle());
     }
 
+    public void DriveStraightFast(double distanceInch, double directionDeg, double maxTime)
+    {
+        double distanceRemainInch    = 0.0;
+        double distanceRemainAbsInch = 0.0;
+
+        double drvPowerDirection = 0.0;
+        double drvPower      = 0.0;
+        double drvPowerKp    = 0.0;
+        double drvPowerClamp = 0.0;
+
+        double turnPower    = 0.0;
+        double angleKpPower = 0.0;
+        double angleKdPower = 0.0;
+
+        double angleError     = 0.0;
+        double prevAngleError = 0.0;
+        double angleErrorRate = 0.0;
+
+        double time     = 0.0;
+        double prevTime = -1.0;
+
+        double deltaPositionCnts  = 0.0;
+
+        double currentAngle     = 0.0;
+        double startingAngle    = 0.0;
+
+        boolean done = false;
+
+        Robot.drivetrain.LT_FRNT_MODULE.resetDrvDistance();
+        deltaPositionCnts = 0.0;
+
+        startingAngle         = Robot.navX.getAngle();
+        distanceRemainInch    = distanceInch;
+        distanceRemainAbsInch = Math.abs(distanceRemainInch);
+
+        autonTimer.reset();
+        autonTimer.start();
+
+        while(!done)
+        {
+            time = autonTimer.get();
+
+            if(time > maxTime)
+            {
+                done = true;
+                Robot.drivetrain.translateTurn(directionDeg, 0.0, 0.0, Robot.drivetrain.getGyroAngle());
+            }
+            else
+            {
+                currentAngle = Robot.navX.getAngle();
+                
+                angleError = startingAngle - currentAngle;
+
+                if(prevTime == -1.0)
+                {
+                    angleErrorRate = 0.0;
+                }
+                else
+                {
+                    angleErrorRate = (angleError - prevAngleError) / (time - prevTime);
+                }
+    
+                deltaPositionCnts   = Robot.drivetrain.LT_FRNT_MODULE.getDrvDistance();
+                distanceRemainInch    = distanceInch - (deltaPositionCnts * DRVTRAIN_ENC_COUNTS_TO_INCH);
+                distanceRemainAbsInch = Math.abs(distanceRemainInch);
+                drvPowerDirection     = Math.signum(distanceRemainInch);
+
+                if(distanceRemainAbsInch <= DRV_S_THRESHOLD_INCH)
+                {
+                    done = true;
+                    Robot.drivetrain.translateTurn(directionDeg, 0.0, 0.0, Robot.drivetrain.getGyroAngle());
+                }
+                else
+                {
+                    drvPowerKp    = (DRV_S_KP * distanceRemainAbsInch);
+                    drvPowerClamp = Clamp(DRV_S_MIN_POWER, drvPowerKp, DRV_S_MAX_POWER);
+                    drvPower      = drvPowerClamp * Math.signum(drvPowerDirection);
+
+
+                    angleKpPower = DRV_S_ERROR_GAIN * angleError;
+                    angleKdPower = DRV_S_RATE_GAIN  * angleErrorRate;
+
+                    turnPower = Clamp(-1.0, angleKpPower + angleKdPower, 1.0);
+                    turnPower *= Math.signum(drvPowerDirection);
+                    
+
+                    Robot.drivetrain.translateTurn(directionDeg, 1.0, turnPower, Robot.drivetrain.getGyroAngle());
+                    prevTime       = time;
+                    prevAngleError = angleError;
+
+                }
+            }
+            if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_DRV_STRAIGHT)
+            {
+               data = new CatzLog(time, deltaPositionCnts, distanceRemainInch,
+                                                            drvPowerKp,
+                                                            drvPowerClamp, 
+                                                            drvPower, 
+                                                            currentAngle,
+                                                            angleError, 
+                                                            angleErrorRate, 
+                                                            angleKpPower,
+                                                            angleKdPower,
+                                                            turnPower,
+                                                            Robot.drivetrain.LT_FRNT_MODULE.getAngle(),
+                                                            0.0, 0.0, 0);  
+                Robot.dataCollection.logData.add(data);
+            }
+         
+            Timer.delay(DRV_S_THREAD_PERIOD);
+        }
+
+        Robot.drivetrain.translateTurn(directionDeg, 0.0, 0.0, Robot.drivetrain.getGyroAngle());
+    }
+
     public void DriveStraightoffChargeStation(double distanceInch, double directionDeg, double maxTime)
     {
         double distanceRemainInch    = 0.0;

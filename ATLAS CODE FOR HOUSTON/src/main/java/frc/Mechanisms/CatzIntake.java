@@ -12,7 +12,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
-
+import frc.robot.Robot.mechMode;
 import frc.DataLogger.*;
 
 public class CatzIntake {
@@ -62,7 +62,7 @@ public class CatzIntake {
     private final double ENC_TO_INTAKE_GEAR_RATIO = (46.0 / 18.0)* (32.0 / 10.0);
     private final double WRIST_CNTS_PER_DEGREE = (2096.0 * ENC_TO_INTAKE_GEAR_RATIO) / 360.0;
 
-    private final double MANUAL_HOLD_STEP_SIZE = 1.0;
+    private final double MANUAL_HOLD_STEP_SIZE = 2.0;
 
     // TBD - ADD comment for ref point
     private final double CENTER_OF_MASS_OFFSET_DEG = 177.0;
@@ -75,9 +75,9 @@ public class CatzIntake {
     private final double STOW_ENC_POS = -20.0 + WRIST_ABS_ENC_OFFSET_DEG;// 4872.0 + WRIST_ABS_ENC_OFFSET; //3883
     private final double STOW_CUTOFF = -30.232 + WRIST_ABS_ENC_OFFSET_DEG;// + WRIST_ABS_ENC_OFFSET; //3670
 
-    private final double INTAKE_CUBE_ENC_POS = -150.000 + WRIST_ABS_ENC_OFFSET_DEG;// 1324.0 + WRIST_ABS_ENC_OFFSET;
+    private final double INTAKE_CUBE_ENC_POS = -155.000 + WRIST_ABS_ENC_OFFSET_DEG;// 1324.0 + WRIST_ABS_ENC_OFFSET;
                                                                                    // //-335
-    private final double INTAKE_CONE_ENC_POS_GROUND = -150.524 + WRIST_ABS_ENC_OFFSET_DEG;// -306.0 +
+    private final double INTAKE_CONE_ENC_POS_GROUND = -170.524 + WRIST_ABS_ENC_OFFSET_DEG;// -306.0 +
                                                                                           // WRIST_ABS_ENC_OFFSET;
                                                                                           // //-1295
     private final double INTAKE_CONE_ENC_POS_SINGLE = -100.400 + WRIST_ABS_ENC_OFFSET_DEG;// 2089.0 +
@@ -89,8 +89,8 @@ public class CatzIntake {
 
     private final double SCORE_CONE_HIGH_ENC_POS = -140.000 + WRIST_ABS_ENC_OFFSET_DEG;// 289.0 + WRIST_ABS_ENC_OFFSET;
                                                                                        // //-700
-    private final double SCORE_CONE_MID_ENC_POS = INTAKE_CONE_ENC_POS_GROUND; // TBD verify if its the same as high
-    private final double SCORE_CONE_LOW_ENC_POS = INTAKE_CONE_ENC_POS_GROUND; // TBD
+    private final double SCORE_CONE_MID_ENC_POS = -170.000;//INTAKE_CONE_ENC_POS_GROUND; // TBD verify if its the same as high
+    private final double SCORE_CONE_LOW_ENC_POS = -130.00;//INTAKE_CONE_ENC_POS_GROUND; // TBD
 
     private final double SOFT_LIMIT_FORWARD = -160.0; // 4876 + WRIST_ABS_ENC_OFFSET; //3887
     private final double SOFT_LIMIT_REVERSE = -8900.0; // -798.0 + WRIST_ABS_ENC_OFFSET; //-1787 //TBD
@@ -207,7 +207,7 @@ public class CatzIntake {
                     currentPositionDeg = wristMtr.getSelectedSensorPosition() / WRIST_CNTS_PER_DEGREE;
 
                     positionError = currentPositionDeg - targetPositionDeg;
-
+                    
                     if ((Math.abs(positionError) <= ERROR_INTAKE_THRESHOLD_DEG)) {
                         numConsectSamples++;
                         if (numConsectSamples >= 1) {
@@ -287,19 +287,21 @@ public class CatzIntake {
         if (manualMode) {
             pidEnable = false;
             intakeMovementMode = Robot.MODE_MANUAL;
+            Robot.intakeControlMode = mechMode.ManualMode;
         }
+        
 
         if (Math.abs(wristPwr) >= 0.1) {
             if (pidEnable == true)// in manual holding state
             {
-                intakeMovementMode = Robot.MODE_MANUAL_HOLD;
+                Robot.intakeControlMode = mechMode.ManualHoldMode;
 
                 if (wristPwr > 0) {
                     targetPositionDeg = Math.min((targetPositionDeg + wristPwr * MANUAL_HOLD_STEP_SIZE),
-                            SOFT_LIMIT_FORWARD);
+                            -30);
                 } else {
                     targetPositionDeg = Math.max((targetPositionDeg + wristPwr * MANUAL_HOLD_STEP_SIZE),
-                            SOFT_LIMIT_REVERSE);
+                            -180);
                 }
                 prevCurrentPosition = -prevCurrentPosition; // intialize for first time through thread loop, that checks
                                                             // stale position values
@@ -337,7 +339,7 @@ public class CatzIntake {
             pid.reset();
             pidEnable = true;
             intakeInPosition = false;
-            intakeMovementMode = Robot.MODE_AUTO;
+            Robot.intakeControlMode = mechMode.AutoMode;
             prevCurrentPosition = -prevCurrentPosition; // intialize for first time through thread loop, that checks
                                                         // stale position values
 
@@ -352,6 +354,7 @@ public class CatzIntake {
 
                 case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE:
                     targetPositionDeg = INTAKE_CUBE_ENC_POS;
+                    System.out.println("he");
                     break;
 
                 case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
