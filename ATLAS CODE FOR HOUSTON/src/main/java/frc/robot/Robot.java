@@ -356,25 +356,25 @@ public class Robot extends TimedRobot
 
     xboxElevatorManualMode = xboxAux.getRightStickButton();
     xboxElevatorManualPwr  = xboxAux.getRightY();
-    boolean xboxIntakeRollerPwr = true;
+    boolean xboxRollerOutEnabled = true;
 
     //Bumper overiding flinging
     if(xboxAux.getPOV() != DPAD_UP)
     {
-      xboxIntakeRollerPwr = xboxAux.getLeftBumper();
+      xboxRollerOutEnabled = xboxAux.getLeftBumper();
     }
 
  
-    // xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
-    //                        xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
+    xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
+                            xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
 
-    // determineCommandState(xboxGamePieceSelection, xboxLowNode, 
-    //                                               xboxMidNode, 
-    //                                               xboxHighNode, 
-    //                                               xboxStowPos,
-    //                                               xboxPickUpGroundPos,
-    //                                               xboxAux.getPOV() == DPAD_DN,
-    //                                               false);
+    determineCommandState(xboxGamePieceSelection, xboxLowNode, 
+                                                   xboxMidNode, 
+                                                   xboxHighNode, 
+                                                   xboxStowPos,
+                                                   xboxPickUpGroundPos,
+                                                   xboxAux.getPOV() == DPAD_DN,
+                                                   false);
   
                                                    
     elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
@@ -390,7 +390,7 @@ public class Robot extends TimedRobot
 
     intake.cmdProcIntake(-xboxAux.getLeftY(),                   //Semi-manual override
                           xboxAux.getRightBumper(),             //Roller in 
-                          xboxIntakeRollerPwr,              //Roller out
+                          xboxRollerOutEnabled,              //Roller out
                           xboxAux.getLeftStickButtonPressed(),  //Enter all-manual mode
                           (xboxAux.getRightBumper() & xboxAux.getLeftBumper()),  //Soft limit override
                           commandedStateUpdate,
@@ -398,28 +398,28 @@ public class Robot extends TimedRobot
 
 
                          
-    // commandedStateUpdate = COMMAND_STATE_NULL;
+    commandedStateUpdate = COMMAND_STATE_NULL;
 
 
 
     
-    // // Lock Wheels (Balancing)
-    // if(xboxDrv.getBButton())
-    // {
-    //   drivetrain.lockWheels();
-    // }
+    // Lock Wheels (Balancing)
+     if(xboxDrv.getBButton())
+     {
+       drivetrain.lockWheels();
+     }
 
-    // /*
-    // if(DriverStation.getMatchTime() < 2.0)
-    // {
-    //   led.matchDone = true;
+     /*
+     if(DriverStation.getMatchTime() < 2.0)
+     {
+       led.matchDone = true;
 
-    // }
-    // else if(DriverStation.getMatchTime() < 15.0)
-    // {
-    //   led.endGame = true;
-    // }
-    // */
+     }
+     else if(DriverStation.getMatchTime() < 15.0)
+     {
+       led.endGame = true;
+     }
+     */
   }
 
 
