@@ -354,8 +354,8 @@ public class Robot extends TimedRobot
     xboxHighNode           = xboxAux.getYButton();    // High mode: Y button 
     xboxMidNode            = xboxAux.getBButton();
     xboxLowNode            = xboxAux.getAButton();
-    xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
-    xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getLeftStickButton();
+    xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getXButton();
+    xboxPickUpGroundPos    = xboxAux.getStartButton() | xboxDrv.getAButton();
 
     xboxElevatorManualMode = xboxAux.getRightStickButton();
     xboxElevatorManualPwr  = xboxAux.getRightY();
@@ -363,9 +363,9 @@ public class Robot extends TimedRobot
 
     //Bumper overiding flinging
      if(xboxAux.getPOV() != DPAD_UP)
-      {
+     {
        xboxRollerOutEnabled = xboxAux.getLeftBumper();
-      }
+     }
 
     xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
                             xboxAux.getBackButtonPressed()); // Clear Selected Game Piece

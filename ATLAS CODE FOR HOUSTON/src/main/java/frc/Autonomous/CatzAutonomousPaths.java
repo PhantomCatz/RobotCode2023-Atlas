@@ -189,23 +189,21 @@ public class CatzAutonomousPaths
         Robot.auton.DriveStraight(200, FWD_OR_BWD,  4.0);     //From Grid to exit community
     }
 
-    public void sideScore1Pickup1SingleSubSide()
+    public void sideScore1Pickup1SingleSubstation()
     {
-        double offset = 5;
-        double flipConstant;
-        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE) //angle offset depending on what side is red alliance or blue alliance so it can pick up cubes
+        
+        scoreConeHigh();
+
+        Robot.auton.DriveStraight(30, FWD_OR_BWD, 1.0);     
+
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE) 
         {
-            flipConstant = 1;
+            Robot.auton.TurnInPlace(175, 1.0); //if we are red alliance and single sub side
         }
         else
         {
-            flipConstant = -1;
+            Robot.auton.TurnInPlace(-175, 1.0);
         }
-        scoreConeHigh();
-
-        Robot.auton.DriveStraight(30, FWD_OR_BWD, 1.0);     //From Grid to area to do 180 deg turn //TBD remove drv straight 30 and add to the second drive straight
-
-        Robot.auton.TurnInPlace(flipConstant*(180 + offset), 1.0);
 
         pickUpCube();
         
@@ -213,99 +211,113 @@ public class CatzAutonomousPaths
         Timer.delay(0.4); 
         stow();
 
-        Robot.auton.TurnInPlace(flipConstant*(180 + -offset), 1.0);
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
+        {
+            Robot.auton.TurnInPlace(-175, 1.0);
+        }
+        else
+        {
+            Robot.auton.TurnInPlace(175, 1.0);
+        }
     }
 
-    public void sideScore1Pickup1NoSingleSubside()
+    public void sideScore1Pickup1NoSingleSubstation()
     {
 
-        double offset = 5;
-        double flipConstant;
-        scoreConeHigh();
+        scoreConeHigh(); //score cone
         double direction;
         if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            direction = RIGHT;
-            flipConstant = -1;
+            direction = RIGHT; //direction are now positive
 
         }
         else
         {
-            direction = LEFT;
-            flipConstant = 1;
+            direction = LEFT; //directions are flipped
+
         }
         
+
         Robot.auton.DriveStraight(-27, direction, 1.0);     //From Grid to area to do 180 deg turn  //TBD remov initla drvstr
 
-        Robot.auton.TurnInPlace(flipConstant*(180 + -offset) , 1.0);
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
+        {
+            Robot.auton.TurnInPlace(-175 , 1.0); //turn in place counterclockwise
+        }
+        else
+        {
+            Robot.auton.TurnInPlace(175 , 1.0);
+        }
+
 
         pickUpCube();
-        
         Robot.auton.DriveStraight(224, FWD_OR_BWD, 3.0);  //191
         stow();
 
-        Robot.auton.TurnInPlace(flipConstant*(180 + offset), 1.0); 
+
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
+        {
+            Robot.auton.TurnInPlace(175, 1.0); 
+        }
+        else
+        {
+            Robot.auton.TurnInPlace(-175, 1.0); 
+        }
     }
 
 
     
     public void LeftScore2()
     {
-        double direction;
-
         if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            direction = RIGHT;
-            sideScore1Pickup1NoSingleSubside();
+            sideScore1Pickup1NoSingleSubstation();  //if red alliance and left side then use side w/o single substation
         }
         else
         {
-            direction = LEFT;
-            sideScore1Pickup1SingleSubSide();
+            sideScore1Pickup1SingleSubstation();  //if blue alliance and left side the use path w/ single substation
         }
 
-        Robot.auton.DriveStraight(-220,  FWD_OR_BWD, 3.0);    //Move in front of center node
-
-        
-        Robot.auton.DriveStraight(40,  direction, 1.0);    //Move in front of center node
-
-        scoreCubeHigh();
-        Timer.delay(0.3);
-        stow();
-
-        Robot.auton.DriveStraight(-40,  direction, 2.0); 
-
-        Robot.auton.DriveStraight(175, FWD_OR_BWD, 5.0);
+        driveBackFromSideScore();
     }
 
         
     public void RightScore2()
     {
-        double direction;
-
         if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
         {
-            direction = LEFT;
-            sideScore1Pickup1SingleSubSide();
+            sideScore1Pickup1SingleSubstation(); //if red alliance and right side then use side w/ single substation
         }
         else
         {
-            direction = RIGHT;
-            sideScore1Pickup1NoSingleSubside();
+            sideScore1Pickup1NoSingleSubstation(); //if blue alliance and right side the use path w/o single substation
         }
 
+        driveBackFromSideScore();
+    }
 
+    public void driveBackFromSideScore()
+    {
+        double direction;
+        if(chosenAllianceColor.getSelected() == Robot.constants.RED_ALLIANCE)
+        {
+            direction = RIGHT; //should go right from red alliance perspective
+        }
+        else
+        {
+            direction = LEFT; //should go o
+        }
         Robot.auton.DriveStraight(-220, FWD_OR_BWD, 3.0);
 
-        Robot.auton.DriveStraight( 40,  direction, 1.0);    //Move in front of center node
+        Robot.auton.DriveStraight( -40,  direction, 2.0);    //Move in front of center node
 
         scoreCubeHigh();
         Timer.delay(0.3);
         stow();
 
-        Robot.auton.DriveStraight(-40,  direction, 1.0); 
+        Robot.auton.DriveStraight(40,  direction, 2.0); 
 
-        Robot.auton.DriveStraight(175, FWD_OR_BWD, 3.0);
+        Robot.auton.DriveStraight(175, FWD_OR_BWD, 5.0);
     }
 
     public void RightScore3()
@@ -322,7 +334,7 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        sideScore1Pickup1NoSingleSubside();
+        sideScore1Pickup1NoSingleSubstation();
         
         Robot.auton.DriveStraight(-90, FWD_OR_BWD, 3.0);
 
@@ -337,9 +349,7 @@ public class CatzAutonomousPaths
         Robot.auton.DriveStraight(-100, FWD_OR_BWD, 3.0);
         stow();
         Timer.delay(0.2);
-        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);
-
-    
+        setCommandStateAutonIntakeDelay(Robot.COMMAND_UPDATE_SCORE_MID_CUBE, Robot.GP_CUBE);    
     }
 
     public void LeftScore1Balance()
@@ -355,7 +365,7 @@ public class CatzAutonomousPaths
             direction = LEFT;
         }
 
-        sideScore1Pickup1SingleSubSide();
+        sideScore1Pickup1SingleSubstation();
 
         Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
         Robot.auton.DriveStraight(80, direction, 2.0); //prev 70
@@ -377,7 +387,7 @@ public class CatzAutonomousPaths
             direction = RIGHT;
         }
 
-        sideScore1Pickup1SingleSubSide();
+        sideScore1Pickup1SingleSubstation();
 
         Robot.auton.DriveStraight(-42, FWD_OR_BWD, 5.0);
         Robot.auton.DriveStraight(80, direction, 2.0); //prev 70
