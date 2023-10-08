@@ -160,6 +160,7 @@ public class CatzArm
 
             case Robot.COMMAND_UPDATE_STOW           :
             case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE :
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE_UPRIGHT:
             case Robot.COMMAND_UPDATE_SCORE_MID_CUBE :
             case Robot.COMMAND_UPDATE_SCORE_MID_CONE :
                 highExtendProcess = false;
@@ -167,6 +168,7 @@ public class CatzArm
                 armMtr.set(ControlMode.Position, POS_ENC_CNTS_RETRACT);
                 armInPosition = false;
                 targetPosition = POS_ENC_CNTS_RETRACT;
+            
             break;
         }
     }

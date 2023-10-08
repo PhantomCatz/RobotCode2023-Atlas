@@ -76,6 +76,7 @@ public class Robot extends TimedRobot
   public boolean xboxPickUpGroundPos = false;
   public boolean xboxPickUpSinglePos = false;
   public boolean xboxPickUpDoublePos = false;
+  public boolean xdboxPickSinglePosUpright = false; 
 
   public static boolean xboxNULL      = false;
 
@@ -90,6 +91,9 @@ public class Robot extends TimedRobot
   public static final int COMMAND_UPDATE_PICKUP_DOUBLE_CUBE     = 6;
 
   public static final int COMMAND_UPDATE_STOW            = 7;
+
+  public static final int COMMAND_UPDATE_PICKUP_SINGLE_CONE_UPRIGHT = 8;
+
 
   public static final int COMMAND_UPDATE_SCORE_LOW_CONE  = 10;
   public static final int COMMAND_UPDATE_SCORE_LOW_CUBE  = 11;
@@ -253,19 +257,18 @@ public class Robot extends TimedRobot
     SmartDashboard.putNumber("gamepiece int", selectedGamePiece);
     SmartDashboard.putNumber("COMMAND STATE", commandedStateUpdate);
 
+        //debug should be commented out for comp
     drivetrain.smartDashboardDriveTrain();
-    drivetrain.smartDashboardDriveTrain_DEBUG();
+    //drivetrain.smartDashboardDriveTrain_DEBUG();
     elevator.smartDashboardElevator();
-    elevator.smartDashboardElevator_DEBUG();
-    balance.SmartDashboardBalanceDebug();
+    //elevator.smartDashboardElevator_DEBUG();
+    //balance.SmartDashboardBalanceDebug();
 
         
     arm.smartDashboardARM();
     balance.SmartDashboardBalance();
-  
-    //debug should be commented out for comp
 
-        intake.smartdashboardIntakeDebug();
+      //  intake.smartdashboardIntakeDebug();
        balance.SmartDashboardBalanceDebug();
        
   }
@@ -348,7 +351,7 @@ public class Robot extends TimedRobot
 
 
 
-    xboxHighNode           = xboxAux.getYButton();
+    xboxHighNode           = xboxAux.getYButton();    // High mode: Y button 
     xboxMidNode            = xboxAux.getBButton();
     xboxLowNode            = xboxAux.getAButton();
     xboxStowPos            = xboxAux.getXButton()     | xboxDrv.getRightStickButton();
@@ -359,12 +362,11 @@ public class Robot extends TimedRobot
     boolean xboxRollerOutEnabled = true;
 
     //Bumper overiding flinging
-    if(xboxAux.getPOV() != DPAD_UP)
-    {
-      xboxRollerOutEnabled = xboxAux.getLeftBumper();
-    }
+     if(xboxAux.getPOV() != DPAD_UP)
+      {
+       xboxRollerOutEnabled = xboxAux.getLeftBumper();
+      }
 
- 
     xboxGamePieceSelection(xboxAux.getPOV(),                // Left = Cone, Right = Cube
                             xboxAux.getBackButtonPressed()); // Clear Selected Game Piece
 
@@ -373,8 +375,7 @@ public class Robot extends TimedRobot
                                                    xboxHighNode, 
                                                    xboxStowPos,
                                                    xboxPickUpGroundPos,
-                                                   xboxAux.getPOV() == DPAD_DN,
-                                                   false);
+                                                   xboxAux.getPOV() == DPAD_DN, false, xboxDrv.getYButtonPressed());
   
                                                    
     elevator.cmdProcElevator(xboxElevatorManualPwr,  // Manual and Manual Hold Elevator Power
@@ -502,7 +503,8 @@ public class Robot extends TimedRobot
                                     boolean StowPos,
                                     boolean PickUpGroundPos,
                                     boolean PickUpSinglePos,
-                                    boolean PickUpDoublePos) 
+                                    boolean PickUpDoublePos, 
+                                    boolean PickupSinglePosUpright) 
   {
     if(StowPos)
     {
@@ -573,6 +575,19 @@ public class Robot extends TimedRobot
       else
       {
         commandedStateUpdate = COMMAND_UPDATE_PICKUP_DOUBLE_CONE;
+      }
+    }
+    else if(PickupSinglePosUpright)
+    {
+      System.out.println("b");
+      if(selectedGamePiece == GP_CUBE)
+      {
+        commandedStateUpdate = COMMAND_UPDATE_PICKUP_GROUND_CUBE;
+      }
+      else
+      {
+        System.out.println("h");
+        commandedStateUpdate = COMMAND_UPDATE_PICKUP_SINGLE_CONE_UPRIGHT;
       }
     }
   }   //end of determineCommandState()

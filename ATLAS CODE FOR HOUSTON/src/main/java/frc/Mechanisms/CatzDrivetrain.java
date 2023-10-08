@@ -15,7 +15,7 @@ public class CatzDrivetrain
 
     private final int LT_FRNT_DRIVE_ID = 1;
     private final int LT_BACK_DRIVE_ID = 3;
-    private final int RT_BACK_DRIVE_ID = 5;
+    private final int RT_BACK_DRIVE_ID = 22;
     private final int RT_FRNT_DRIVE_ID = 7;
     
     private final int LT_FRNT_STEER_ID = 2;

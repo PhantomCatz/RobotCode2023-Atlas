@@ -196,6 +196,11 @@ public class CatzElevator
 
             break;
 
+            case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE_UPRIGHT:
+            armRetractingAndElevatorDescent = false;
+
+            break;
+
             case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
 
                 armRetractingAndElevatorDescent = false;
@@ -220,7 +225,7 @@ public class CatzElevator
             case Robot.COMMAND_UPDATE_SCORE_HIGH_CONE:
                 armRetractingAndElevatorDescent = false;
                 elevatorSetToHighPos();
-            break;
+            break;             
             
         
             case Robot.COMMAND_STATE_NULL:

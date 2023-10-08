@@ -1,5 +1,7 @@
 package frc.Mechanisms;
 
+import javax.lang.model.util.ElementScanner14;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
@@ -9,6 +11,7 @@ import com.ctre.phoenix.sensors.CANCoder;
 import com.ctre.phoenix.sensors.SensorInitializationStrategy;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
@@ -75,7 +78,7 @@ public class CatzIntake {
     private final double STOW_ENC_POS = -20.0 + WRIST_ABS_ENC_OFFSET_DEG;// 4872.0 + WRIST_ABS_ENC_OFFSET; //3883
     private final double STOW_CUTOFF = -30.232 + WRIST_ABS_ENC_OFFSET_DEG;// + WRIST_ABS_ENC_OFFSET; //3670
 
-    private final double INTAKE_CUBE_ENC_POS = -155.000 + WRIST_ABS_ENC_OFFSET_DEG;// 1324.0 + WRIST_ABS_ENC_OFFSET;
+    private final double INTAKE_CUBE_ENC_POS = -140.000 + WRIST_ABS_ENC_OFFSET_DEG;// 1324.0 + WRIST_ABS_ENC_OFFSET;
                                                                                    // //-335
     private final double INTAKE_CONE_ENC_POS_GROUND = -170.524 + WRIST_ABS_ENC_OFFSET_DEG;// -306.0 +
                                                                                           // WRIST_ABS_ENC_OFFSET;
@@ -84,10 +87,13 @@ public class CatzIntake {
                                                                                           // WRIST_ABS_ENC_OFFSET;
                                                                                           // //1100
 
+    private final double INTAKE_CONE_ENC_POS_SINGLE_UPRIGHT = -80.000 + WRIST_ABS_ENC_OFFSET_DEG; //lc                                                                                          
+
     private final double SCORE_CUBE_ENC_POS = -90.000 + WRIST_ABS_ENC_OFFSET_DEG;// //prev -80
                                                                                  // // Applies to low-mid-high
 
-    private final double SCORE_CONE_HIGH_ENC_POS = -140.000 + WRIST_ABS_ENC_OFFSET_DEG;// 289.0 + WRIST_ABS_ENC_OFFSET;
+    private final double SCORE_CONE_HIGH_ENC_POS_AUTON = -140.000 + WRIST_ABS_ENC_OFFSET_DEG;// 289.0 + WRIST_ABS_ENC_OFFSET;
+    private final double SCORE_CONE_HIGH_ENC_POS_TELOP = -139.000;
                                                                                        // //-700
     private final double SCORE_CONE_MID_ENC_POS = -170.000;//INTAKE_CONE_ENC_POS_GROUND; // TBD verify if its the same as high
     private final double SCORE_CONE_LOW_ENC_POS = -130.00;//INTAKE_CONE_ENC_POS_GROUND; // TBD
@@ -354,11 +360,14 @@ public class CatzIntake {
 
                 case Robot.COMMAND_UPDATE_PICKUP_GROUND_CUBE:
                     targetPositionDeg = INTAKE_CUBE_ENC_POS;
-                    System.out.println("he");
                     break;
 
                 case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE:
                     targetPositionDeg = INTAKE_CONE_ENC_POS_SINGLE;
+                    break;
+
+                case Robot.COMMAND_UPDATE_PICKUP_SINGLE_CONE_UPRIGHT:
+                    targetPositionDeg = INTAKE_CONE_ENC_POS_SINGLE_UPRIGHT;
                     break;
 
                 case Robot.COMMAND_UPDATE_SCORE_LOW_CONE:
@@ -377,8 +386,15 @@ public class CatzIntake {
                     break;
 
                 case Robot.COMMAND_UPDATE_SCORE_HIGH_CONE:
-                    targetPositionDeg = SCORE_CONE_HIGH_ENC_POS;
+                if(DriverStation.isAutonomousEnabled()){
+                    targetPositionDeg = SCORE_CONE_HIGH_ENC_POS_AUTON;
+                }
+                else{
+                    targetPositionDeg = SCORE_CONE_HIGH_ENC_POS_TELOP;
+                }
                     break;
+
+
 
                 default:
                     pidEnable = false;
